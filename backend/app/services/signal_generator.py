@@ -2,12 +2,13 @@ import os
 import json
 from typing import Dict, Optional
 from datetime import datetime
-import openai
+from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Initialize Groq client
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 SIGNAL_GENERATION_PROMPT = """You are an expert cryptocurrency trading analyst specializing in:
 - Wyckoff Method (accumulation, markup, distribution, markdown phases)
@@ -56,7 +57,8 @@ RULES:
 - Consider Kill Zone: higher confidence during London/NY sessions
 - NO signal if in strong opposite trend
 - NO signal if price is in middle of range
-"""
+
+Respond ONLY with valid JSON. No markdown, no explanation outside JSON."""
 
 async def generate_signal(
     pair: str,
@@ -65,7 +67,7 @@ async def generate_signal(
     current_price: float = 0.0,
     price_data: Optional[list] = None
 ) -> Dict:
-    """Generate AI trading signal using OpenAI"""
+    """Generate AI trading signal using Groq (Llama 3)"""
     
     # Get market context
     kill_zone = get_current_kill_zone()
@@ -83,14 +85,15 @@ async def generate_signal(
     )
     
     try:
-        response = await openai.chat.completions.create(
-            model="gpt-4-turbo-preview",
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",  # Fast and capable
             messages=[
                 {"role": "system", "content": "You are a professional crypto trading analyst. Respond ONLY with valid JSON."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.3,
-            max_tokens=1000
+            temperature=0.2,
+            max_tokens=1000,
+            response_format={"type": "json_object"}
         )
         
         # Parse response
@@ -109,6 +112,7 @@ async def generate_signal(
         return signal_data
         
     except Exception as e:
+        print(f"Groq API error: {e}")
         # Fallback signal structure
         return {
             "id": f"sig_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
