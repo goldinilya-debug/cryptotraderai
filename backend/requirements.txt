@@ -6,8 +6,4 @@ python-dotenv==1.0.0
 groq==0.4.0
 httpx==0.26.0
 websockets==12.0
-supabase==2.3.0
-pandas==2.0.3
-numpy==1.24.4
-python-binance==1.0.19
 schedule==1.2.0
