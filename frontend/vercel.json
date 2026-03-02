@@ -1,0 +1,10 @@
+# Vercel Deployment Configuration
+
+# Build command
+npm run build
+
+# Output directory
+.next
+
+# Environment variables (set in Vercel dashboard)
+# NEXT_PUBLIC_API_URL=https://your-backend-url.up.railway.app
