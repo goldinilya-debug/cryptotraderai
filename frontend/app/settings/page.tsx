@@ -115,11 +115,6 @@ export default function MLSettings() {
       setTimeout(() => setButtonTest(''), 3000)
     }
   }
-      }
-    } catch (e) {
-      console.log('Toggle failed')
-    }
-  }
 
   if (!mounted) {
     return <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#fff', padding: '20px' }}>Loading...</div>
