@@ -121,7 +121,7 @@ export default function Dashboard() {
   const [signals, setSignals] = useState(SIGNALS)
   const [generating, setGenerating] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [selectedSignal, setSelectedSignal] = useState(null)
+  const [selectedSignal, setSelectedSignal] = useState<any>(null)
   const [showAnalysis, setShowAnalysis] = useState(false)
 
   useEffect(() => {
