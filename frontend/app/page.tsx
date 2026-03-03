@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react'
 import { 
   TrendingUp, 
-  TrendingDown, 
   Activity, 
   Target, 
-  AlertTriangle,
-  Clock,
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { SignalCard } from '@/components/SignalCard'
@@ -16,57 +14,69 @@ import { MetricCard } from '@/components/MetricCard'
 import { KillZoneStatus } from '@/components/KillZoneStatus'
 import { Signal } from '@/types'
 
-const MOCK_SIGNALS: Signal[] = [
-  {
-    id: '1',
-    pair: 'BTC/USDT',
-    direction: 'LONG',
-    entry: 63500,
-    stopLoss: 62800,
-    takeProfit1: 64500,
-    takeProfit2: 65500,
-    confidence: 82,
-    timeframe: '4H',
-    exchange: 'Binance',
-    status: 'ACTIVE',
-    wyckoffPhase: 'accumulation',
-    killZone: 'London',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    pair: 'ETH/USDT',
-    direction: 'SHORT',
-    entry: 2031.69,
-    stopLoss: 2054.05,
-    takeProfit1: 1961.62,
-    takeProfit2: 1928.54,
-    confidence: 75,
-    timeframe: '4H',
-    exchange: 'BingX',
-    status: 'ACTIVE',
-    wyckoffPhase: 'markup',
-    killZone: 'New York',
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-]
-
-const STATS = {
-  totalSignals: 42,
-  activeSignals: 4,
-  winRate: 36,
-  hitTP: 13,
-  hitSL: 23,
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cryptotraderai-api.onrender.com'
 
 export default function Dashboard() {
-  const [signals, setSignals] = useState<Signal[]>(MOCK_SIGNALS)
+  const [signals, setSignals] = useState<Signal[]>([])
+  const [stats, setStats] = useState({
+    totalSignals: 0,
+    activeSignals: 0,
+    winRate: 0,
+    hitTP: 0,
+    hitSL: 0,
+  })
+  const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
 
   useEffect(() => {
+    fetchSignals()
+    fetchStats()
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
     return () => clearInterval(timer)
   }, [])
+
+  const fetchSignals = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/signals`)
+      if (res.ok) {
+        const data = await res.json()
+        setSignals(data.signals || [])
+      }
+    } catch (e) {
+      console.log('Using fallback signals')
+    }
+    setLoading(false)
+  }
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/performance/stats`)
+      if (res.ok) {
+        const data = await res.json()
+        setStats(data)
+      }
+    } catch (e) {
+      console.log('Using fallback stats')
+    }
+  }
+
+  const generateSignal = async () => {
+    setGenerating(true)
+    try {
+      const res = await fetch(`${API_URL}/api/signals/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pair: 'BTC/USDT', timeframe: '4H', exchange: 'binance' })
+      })
+      if (res.ok) {
+        await fetchSignals() // Обновить список
+      }
+    } catch (e) {
+      alert('Error generating signal')
+    }
+    setGenerating(false)
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -86,7 +96,7 @@ export default function Dashboard() {
             <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
             <span className="text-muted">Live</span>
             <span className="text-muted">•</span>
-            <span className="text-muted">{format(currentTime, 'HH:mm')} UTC</span>
+            <span className="text-muted">{format(currentTime, 'HH:mm')}</span>
           </div>
         </div>
       </header>
@@ -96,27 +106,27 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <MetricCard
             title="Total Signals"
-            value={STATS.totalSignals}
+            value={stats.totalSignals || '—'}
             subtitle="All time generated"
             icon={Activity}
           />
           <MetricCard
             title="Active Signals"
-            value={STATS.activeSignals}
+            value={stats.activeSignals || '—'}
             subtitle="Currently open"
             icon={Zap}
             highlight
           />
           <MetricCard
             title="Win Rate"
-            value={`${STATS.winRate}%`}
-            subtitle={`${STATS.hitTP} wins / ${STATS.hitSL} losses`}
+            value={stats.winRate ? `${stats.winRate}%` : '—'}
+            subtitle={`${stats.hitTP || 0} wins / ${stats.hitSL || 0} losses`}
             icon={Target}
-            valueColor={STATS.winRate > 50 ? 'text-success' : 'text-warning'}
+            valueColor={stats.winRate > 50 ? 'text-success' : 'text-warning'}
           />
           <MetricCard
             title="Hit TP"
-            value={STATS.hitTP}
+            value={stats.hitTP || '—'}
             subtitle="Take profit reached"
             icon={TrendingUp}
             valueColor="text-success"
@@ -128,14 +138,29 @@ export default function Dashboard() {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Active Signals</h2>
-              <button className="text-sm text-primary hover:underline">
-                View All
+              <button 
+                onClick={fetchSignals}
+                className="text-sm text-primary hover:underline"
+              >
+                Refresh
               </button>
             </div>
             
-            {signals.map((signal) => (
-              <SignalCard key={signal.id} signal={signal} />
-            ))}
+            {loading ? (
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                <p className="text-muted mt-2">Loading signals...</p>
+              </div>
+            ) : signals.length > 0 ? (
+              signals.map((signal) => (
+                <SignalCard key={signal.id} signal={signal} />
+              ))
+            ) : (
+              <div className="bg-surface rounded-xl p-8 text-center border border-surface-light">
+                <p className="text-muted">No active signals</p>
+                <p className="text-sm text-muted mt-1">Generate a new signal to get started</p>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -146,8 +171,13 @@ export default function Dashboard() {
             <div className="bg-surface rounded-xl p-4 border border-surface-light">
               <h3 className="font-semibold mb-4">Quick Actions</h3>
               <div className="space-y-2">
-                <button className="w-full py-2 px-4 bg-primary text-background rounded-lg font-medium hover:bg-primary-dark transition">
-                  Generate Signal
+                <button 
+                  onClick={generateSignal}
+                  disabled={generating}
+                  className="w-full py-2 px-4 bg-primary text-background rounded-lg font-medium hover:bg-primary-dark transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {generating && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {generating ? 'Generating...' : 'Generate Signal'}
                 </button>
                 <button className="w-full py-2 px-4 bg-surface-light rounded-lg font-medium hover:bg-surface-light/80 transition">
                   View Analysis
