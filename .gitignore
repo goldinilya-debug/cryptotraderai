@@ -55,3 +55,4 @@ htmlcov/
 *.pem
 *.cert
 *.key
+.vercel

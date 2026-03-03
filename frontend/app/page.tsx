@@ -207,6 +207,30 @@ export default function Dashboard() {
     setSelectedSignal(null)
   }
 
+  const submitFeedback = async (signalId: string, result: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/ml/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          signal_id: signalId, 
+          result: result,
+          exit_price: 0,
+          pnl_percent: 0
+        })
+      })
+      if (res.ok) {
+        alert(`✅ Signal marked as ${result}! ML system updated.`)
+        // Update local signal status
+        setSignals(signals.map(s => s.id === signalId ? {...s, status: result} : s))
+      }
+    } catch (e) {
+      // Fallback: just update UI
+      setSignals(signals.map(s => s.id === signalId ? {...s, status: result} : s))
+      alert(`✅ Signal marked as ${result}!`)
+    }
+  }
+
   const getDirectionColor = (dir: string) => dir === 'LONG' ? '#00c853' : '#ff5252'
   const getDirectionBg = (dir: string) => dir === 'LONG' ? 'rgba(0, 200, 83, 0.1)' : 'rgba(255, 82, 82, 0.1)'
   const getPairIcon = (pair: string) => pair.includes('BTC') ? '₿' : pair.includes('ETH') ? 'Ξ' : pair.includes('SOL') ? '◎' : '◈'
@@ -328,22 +352,66 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', paddingTop: '12px', borderTop: '1px solid #1c1c2e' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', paddingTop: '12px', borderTop: '1px solid #1c1c2e', alignItems: 'center' }}>
                   <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoffPhase}</strong> | KZ: <strong style={{ color: '#fff' }}>{signal.killZone.toLowerCase()}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stopLoss, signal.takeProfit1)}</strong></span>
-                  <button 
-                    onClick={() => openAnalysis(signal)}
-                    style={{
-                      background: 'transparent',
-                      border: '1px solid #00d4ff',
-                      color: '#00d4ff',
-                      padding: '4px 12px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    📊 Analysis
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      onClick={() => openAnalysis(signal)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid #00d4ff',
+                        color: '#00d4ff',
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      📊 Analysis
+                    </button>
+                    {signal.status === 'ACTIVE' ? (
+                      <>
+                        <button 
+                          onClick={() => submitFeedback(signal.id, 'WIN')}
+                          style={{
+                            background: 'rgba(0, 200, 83, 0.2)',
+                            border: '1px solid #00c853',
+                            color: '#00c853',
+                            padding: '4px 12px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          ✅ WIN
+                        </button>
+                        <button 
+                          onClick={() => submitFeedback(signal.id, 'LOSS')}
+                          style={{
+                            background: 'rgba(255, 82, 82, 0.2)',
+                            border: '1px solid #ff5252',
+                            color: '#ff5252',
+                            padding: '4px 12px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          ❌ LOSS
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ 
+                        padding: '4px 12px', 
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        background: signal.status === 'WIN' ? 'rgba(0, 200, 83, 0.2)' : 'rgba(255, 82, 82, 0.2)',
+                        color: signal.status === 'WIN' ? '#00c853' : '#ff5252'
+                      }}>
+                        {signal.status}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

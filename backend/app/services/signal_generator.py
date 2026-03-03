@@ -5,6 +5,8 @@ from datetime import datetime
 from groq import Groq
 from dotenv import load_dotenv
 
+from app.services.ml_engine import signal_ml
+
 load_dotenv()
 
 # Initialize Groq client
@@ -67,13 +69,33 @@ async def generate_signal(
     current_price: float = 0.0,
     price_data: Optional[list] = None
 ) -> Dict:
-    """Generate AI trading signal using Groq (Llama 3)"""
+    """Generate AI trading signal using Groq with ML enhancement"""
     
     # Get market context
     kill_zone = get_current_kill_zone()
     
+    # Try ML-enhanced generation first
+    try:
+        ml_signal = await signal_ml.generate_ml_enhanced_signal(pair, timeframe, exchange)
+        if ml_signal and ml_signal.get('ml_recommended'):
+            # Record signal in ML system
+            signal_ml.record_signal(ml_signal)
+            return ml_signal
+    except Exception as e:
+        print(f"ML generation failed, using standard: {e}")
+    
+    # Standard generation with ML insights in prompt
+    # Get ML performance data for this pair
+    pair_wr = signal_ml.get_win_rate(pair=pair)
+    
+    ml_hint = f"""
+ML INSIGHTS:
+- {pair} historical win rate: {pair_wr:.1f}%
+- Focus on high-probability setups only
+"""
+    
     # Prepare prompt
-    prompt = SIGNAL_GENERATION_PROMPT.format(
+    prompt = ml_hint + SIGNAL_GENERATION_PROMPT.format(
         pair=pair,
         timeframe=timeframe,
         current_price=current_price,
@@ -86,7 +108,7 @@ async def generate_signal(
     
     try:
         response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",  # Fast and capable
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a professional crypto trading analyst. Respond ONLY with valid JSON."},
                 {"role": "user", "content": prompt}
@@ -108,6 +130,11 @@ async def generate_signal(
         signal_data["status"] = "ACTIVE"
         signal_data["kill_zone"] = kill_zone
         signal_data["created_at"] = datetime.utcnow().isoformat()
+        signal_data["ml_enhanced"] = False
+        signal_data["ml_win_rate"] = pair_wr
+        
+        # Record in ML system
+        signal_ml.record_signal(signal_data)
         
         return signal_data
         
@@ -129,7 +156,9 @@ async def generate_signal(
             "wyckoff_phase": "unknown",
             "kill_zone": kill_zone,
             "analysis": f"Error in AI generation: {str(e)}",
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
+            "ml_enhanced": False,
+            "ml_win_rate": 50
         }
 
 def get_current_kill_zone() -> str:
