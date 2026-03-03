@@ -2,6 +2,98 @@
 
 import { useState, useEffect } from 'react'
 
+// Translations
+const translations = {
+  ru: {
+    title: 'CryptoTraderAI',
+    subtitle: 'AI-сигналы для трейдинга',
+    live: 'В эфире',
+    mlSettings: '⚙️ ML Настройки',
+    totalSignals: 'Всего сигналов',
+    allTimeGenerated: 'Сгенерировано всего',
+    activeSignals: 'Активные сигналы',
+    currentlyOpen: 'Открытые позиции',
+    winRate: 'Win Rate',
+    winsLosses: 'побед / поражений',
+    hitTP: 'Достигнут TP',
+    takeProfitReached: 'Take profit сработал',
+    activeSignalsTitle: 'Активные сигналы',
+    signals: 'сигналов',
+    entry: 'Вход',
+    stopLoss: 'Стоп-лосс',
+    analysis: 'Анализ',
+    win: 'Победа',
+    loss: 'Поражение',
+    won: 'Победа',
+    lost: 'Поражение',
+    killZoneStatus: 'Статус Kill Zone',
+    quickActions: 'Быстрые действия',
+    generateSignal: 'Сгенерировать сигнал',
+    generating: 'Генерация...',
+    signalAnalysis: 'Анализ сигнала',
+    close: '×',
+    wyckoffAnalysis: 'Анализ Wyckoff',
+    smartMoneyConcepts: 'Концепция Smart Money',
+    killZoneTiming: 'Время Kill Zone',
+    entryLogic: 'Логика входа',
+    riskManagement: 'Управление рисками',
+    rewardTargets: 'Цели прибыли',
+    aiConfidence: 'Уверенность AI',
+    asianSession: 'Азиатская сессия',
+    londonSession: 'Лондонская сессия',
+    newYorkSession: 'Нью-Йоркская сессия',
+    londonClose: 'Закрытие Лондона',
+    medium: 'Средняя',
+    high: 'Высокая',
+    active: 'Активно',
+    loading: 'Загрузка...'
+  },
+  en: {
+    title: 'CryptoTraderAI',
+    subtitle: 'AI-powered trading signals',
+    live: 'Live',
+    mlSettings: '⚙️ ML Settings',
+    totalSignals: 'Total Signals',
+    allTimeGenerated: 'All time generated',
+    activeSignals: 'Active Signals',
+    currentlyOpen: 'Currently open',
+    winRate: 'Win Rate',
+    winsLosses: 'wins / losses',
+    hitTP: 'Hit TP',
+    takeProfitReached: 'Take profit reached',
+    activeSignalsTitle: 'Active Signals',
+    signals: 'signals',
+    entry: 'Entry',
+    stopLoss: 'Stop Loss',
+    analysis: 'Analysis',
+    win: 'WIN',
+    loss: 'LOSS',
+    won: 'WON',
+    lost: 'LOST',
+    killZoneStatus: 'Kill Zone Status',
+    quickActions: 'Quick Actions',
+    generateSignal: 'Generate Signal',
+    generating: 'Generating...',
+    signalAnalysis: 'Signal Analysis',
+    close: '×',
+    wyckoffAnalysis: 'Wyckoff Analysis',
+    smartMoneyConcepts: 'Smart Money Concepts',
+    killZoneTiming: 'Kill Zone Timing',
+    entryLogic: 'Entry Logic',
+    riskManagement: 'Risk Management',
+    rewardTargets: 'Reward Targets',
+    aiConfidence: 'AI Confidence',
+    asianSession: 'Asian Session',
+    londonSession: 'London Session',
+    newYorkSession: 'New York Session',
+    londonClose: 'London Close',
+    medium: 'Medium',
+    high: 'High',
+    active: 'Active',
+    loading: 'Loading...'
+  }
+}
+
 // Demo данные
 const DEMO_STATS = {
   totalSignals: 42,
@@ -11,7 +103,7 @@ const DEMO_STATS = {
   hitSL: 23,
 }
 
-const SIGNALS = [
+const SIGNALS_DATA = [
   {
     id: '1',
     pair: 'BTC/USDT',
@@ -50,10 +142,10 @@ const SIGNALS = [
     exchange: 'BingX',
     status: 'ACTIVE',
     analysis: {
-      wyckoff: 'Distribution forming at top of markup. UTAD (Upthrust After Distribution) pattern visible.',
+      wyckoff: 'Distribution forming at top of markup. UTAD pattern visible.',
       smc: 'Fair Value Gap above $2,050 likely to be filled. Bearish order block at $2,040.',
-      killZone: 'New York session showing distribution by smart money. High probability short setup.',
-      entry: 'Short at $2,031 after rejection from $2,040 resistance with divergence.',
+      killZone: 'New York session showing distribution by smart money.',
+      entry: 'Short at $2,031 after rejection from $2,040 resistance.',
       risk: 'Stop above distribution high at $2,054. Risk: 1.2% of account.',
       reward: 'TP1 at $1,961 (1:3.1 R:R). TP2 at $1,928 (1:4.7 R:R).'
     }
@@ -73,10 +165,10 @@ const SIGNALS = [
     exchange: 'Binance',
     status: 'ACTIVE',
     analysis: {
-      wyckoff: 'Accumulation with shakeout below $138. Volume drying up indicates selling exhaustion.',
-      smc: 'Bullish order block at $140. Liquidity sweep below $138 completed.',
-      killZone: 'Asian session providing quiet accumulation before London/NY expansion.',
-      entry: 'Long at $142.50 after reclaim of $140 with volume increase.',
+      wyckoff: 'Accumulation with shakeout below $138. Volume drying up.',
+      smc: 'Bullish order block at $140. Liquidity sweep completed.',
+      killZone: 'Asian session providing quiet accumulation.',
+      entry: 'Long at $142.50 after reclaim of $140.',
       risk: 'Stop below shakeout low at $138. Risk: 1.0% of account.',
       reward: 'TP1 at $150 (1:1.7 R:R). TP2 at $158 (1:3.4 R:R).'
     }
@@ -96,33 +188,28 @@ const SIGNALS = [
     exchange: 'KuCoin',
     status: 'ACTIVE',
     analysis: {
-      wyckoff: 'Distribution completed. Sign of weakness (SOW) with increasing volume on down moves.',
-      smc: 'Break of structure below $38. Bearish FVG at $38.50 likely to be re-tested.',
-      killZone: 'London Close often brings reversals. Institutional profit-taking in play.',
-      entry: 'Short at $38.20 on re-test of broken support turned resistance.',
-      risk: 'Stop above distribution zone at $39.50. Risk: 1.1% of account.',
+      wyckoff: 'Distribution completed. Sign of weakness with volume.',
+      smc: 'Break of structure below $38. Bearish FVG at $38.50.',
+      killZone: 'London Close often brings reversals.',
+      entry: 'Short at $38.20 on re-test of broken support.',
+      risk: 'Stop above distribution zone at $39.50. Risk: 1.1%.',
       reward: 'TP1 at $35.80 (1:1.8 R:R). TP2 at $33.50 (1:3.6 R:R).'
     }
   }
-]
-
-// Kill Zone данные
-const KILL_ZONES = [
-  { name: 'Азиатская сессия', time: '20:00 - 22:00 EST', volatility: 'Средняя', active: false },
-  { name: 'Лондонская сессия', time: '02:00 - 05:00 EST', volatility: 'Высокая', active: false },
-  { name: 'Нью-Йоркская сессия', time: '07:00 - 10:00 EST', volatility: 'Высокая', active: true },
-  { name: 'Закрытие Лондона', time: '10:00 - 12:00 EST', volatility: 'Средняя', active: false },
 ]
 
 const API_URL = 'https://cryptotraderai-api.onrender.com'
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false)
-  const [signals, setSignals] = useState(SIGNALS)
+  const [lang, setLang] = useState('ru')
+  const [signals, setSignals] = useState(SIGNALS_DATA)
   const [generating, setGenerating] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [selectedSignal, setSelectedSignal] = useState<any>(null)
   const [showAnalysis, setShowAnalysis] = useState(false)
+
+  const t = translations[lang as keyof typeof translations]
 
   useEffect(() => {
     setMounted(true)
@@ -132,68 +219,31 @@ export default function Dashboard() {
 
   const generateSignal = async () => {
     setGenerating(true)
-    try {
-      const res = await fetch(`${API_URL}/api/signals/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pair: 'BTC/USDT', timeframe: '4H', exchange: 'binance' })
-      })
-      if (res.ok) {
-        const newSignal = await res.json()
-        setSignals([newSignal, ...signals])
-      } else {
-        // Fallback: добавляем демо-сигнал
-        const demoSignal = {
-          id: Date.now().toString(),
-          pair: 'BTC/USDT',
-          direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
-          confidence: Math.floor(Math.random() * 20) + 70,
-          entry: 63500 + Math.random() * 1000,
-          stopLoss: 62000,
-          takeProfit1: 65000,
-          takeProfit2: 66000,
-          wyckoffPhase: 'accumulation',
-          killZone: 'New York',
-          timeframe: '4H',
-          exchange: 'Binance',
-          status: 'ACTIVE',
-          analysis: {
-            wyckoff: 'Accumulation phase with volume confirmation. Spring pattern forming.',
-            smc: 'Liquidity sweep completed. Bullish order block identified.',
-            killZone: 'New York session optimal for volatility.',
-            entry: 'Entry after BOS with volume expansion.',
-            risk: 'Stop below recent low. Risk: 1.0% of account.',
-            reward: 'Multiple TP levels for scaling out.'
-          }
-        }
-        setSignals([demoSignal, ...signals])
+    await new Promise(r => setTimeout(r, 1500))
+    const demoSignal = {
+      id: Date.now().toString(),
+      pair: 'BTC/USDT',
+      direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
+      confidence: Math.floor(Math.random() * 20) + 70,
+      entry: 63500,
+      stopLoss: 62800,
+      takeProfit1: 64500,
+      takeProfit2: 65500,
+      wyckoffPhase: 'accumulation',
+      killZone: 'New York',
+      timeframe: '4H',
+      exchange: 'Binance',
+      status: 'ACTIVE',
+      analysis: {
+        wyckoff: 'Accumulation phase with volume confirmation.',
+        smc: 'Liquidity sweep completed.',
+        killZone: 'New York session optimal.',
+        entry: 'Entry after BOS.',
+        risk: 'Stop below recent low.',
+        reward: 'Multiple TP levels.'
       }
-    } catch (e) {
-      const demoSignal = {
-        id: Date.now().toString(),
-        pair: 'BTC/USDT',
-        direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
-        confidence: Math.floor(Math.random() * 20) + 70,
-        entry: 63500,
-        stopLoss: 62800,
-        takeProfit1: 64500,
-        takeProfit2: 65500,
-        wyckoffPhase: 'accumulation',
-        killZone: 'New York',
-        timeframe: '4H',
-        exchange: 'Binance',
-        status: 'ACTIVE',
-        analysis: {
-          wyckoff: 'Accumulation phase with volume confirmation.',
-          smc: 'Liquidity sweep completed.',
-          killZone: 'New York session optimal.',
-          entry: 'Entry after BOS.',
-          risk: 'Stop below recent low.',
-          reward: 'Multiple TP levels.'
-        }
-      }
-      setSignals([demoSignal, ...signals])
     }
+    setSignals([demoSignal, ...signals])
     setGenerating(false)
   }
 
@@ -220,15 +270,12 @@ export default function Dashboard() {
         })
       })
       if (res.ok) {
-        alert(`✅ Signal marked as ${result}! ML system updated.`)
-        // Update local signal status
-        setSignals(signals.map(s => s.id === signalId ? {...s, status: result} : s))
+        alert(lang === 'ru' ? `✅ Сигнал отмечен как ${result === 'WIN' ? 'победа' : 'поражение'}!` : `✅ Signal marked as ${result}!`)
       }
     } catch (e) {
-      // Fallback: just update UI
-      setSignals(signals.map(s => s.id === signalId ? {...s, status: result} : s))
-      alert(`✅ Signal marked as ${result}!`)
+      // Fallback
     }
+    setSignals(signals.map(s => s.id === signalId ? {...s, status: result} : s))
   }
 
   const getDirectionColor = (dir: string) => dir === 'LONG' ? '#00c853' : '#ff5252'
@@ -236,10 +283,25 @@ export default function Dashboard() {
   const getPairIcon = (pair: string) => pair.includes('BTC') ? '₿' : pair.includes('ETH') ? 'Ξ' : pair.includes('SOL') ? '◎' : '◈'
   const calcRR = (entry: number, sl: number, tp: number) => ((tp - entry) / (entry - sl)).toFixed(1)
 
+  const getKillZoneName = (kz: string) => {
+    if (lang === 'ru') {
+      if (kz === 'Asian') return 'Азиатская сессия'
+      if (kz === 'London') return 'Лондонская сессия'
+      if (kz === 'New York') return 'Нью-Йоркская сессия'
+      if (kz === 'London Close') return 'Закрытие Лондона'
+    }
+    return kz
+  }
+
+  const getVolatilityLabel = (v: string) => {
+    if (lang === 'ru') return v === 'High' ? 'Высокая' : 'Средняя'
+    return v
+  }
+
   if (!mounted) {
     return (
       <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#fff', padding: '20px' }}>
-        <p>Loading...</p>
+        <p>{t.loading}</p>
       </div>
     )
   }
@@ -260,17 +322,34 @@ export default function Dashboard() {
               📈
             </div>
             <div>
-              <h1 style={{ margin: 0, fontSize: '20px' }}>CryptoTraderAI</h1>
-              <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>AI-сигналы для трейдинга</p>
+              <h1 style={{ margin: 0, fontSize: '20px' }}>{t.title}</h1>
+              <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>{t.subtitle}</p>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b7280', fontSize: '14px' }}>
-              <div style={{ width: '8px', height: '8px', background: '#00c853', borderRadius: '50%', animation: 'pulse 2s infinite' }}></div>
-              <span>В эфире</span>
+              <div style={{ width: '8px', height: '8px', background: '#00c853', borderRadius: '50%' }}></div>
+              <span>{t.live}</span>
               <span>•</span>
               <span>{currentTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
             </div>
+            
+            <button
+              onClick={() => setLang(lang === 'ru' ? 'en' : 'ru')}
+              style={{
+                background: '#1c1c2e',
+                border: '1px solid #2a2a3e',
+                color: '#00d4ff',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}
+            >
+              {lang === 'ru' ? '🇷🇺 RU' : '🇬🇧 EN'}
+            </button>
+            
             <a 
               href="/settings"
               style={{
@@ -280,11 +359,10 @@ export default function Dashboard() {
                 padding: '8px 16px',
                 borderRadius: '6px',
                 fontSize: '12px',
-                textDecoration: 'none',
-                cursor: 'pointer'
+                textDecoration: 'none'
               }}
             >
-              ⚙️ ML Настройки
+              {t.mlSettings}
             </a>
           </div>
         </div>
@@ -294,24 +372,24 @@ export default function Dashboard() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
           <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
-            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Всего сигналов</p>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>{t.totalSignals}</p>
             <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0 }}>{DEMO_STATS.totalSignals}</p>
-            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>Сгенерировано всего</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{t.allTimeGenerated}</p>
           </div>
           <div style={{ background: 'rgba(0, 212, 255, 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0, 212, 255, 0.3)' }}>
-            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Активные сигналы</p>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>{t.activeSignals}</p>
             <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#00d4ff' }}>{signals.length}</p>
-            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>Открытые позиции</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{t.currentlyOpen}</p>
           </div>
           <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
-            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Win Rate</p>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>{t.winRate}</p>
             <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#ffb300' }}>{DEMO_STATS.winRate}%</p>
-            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{DEMO_STATS.hitTP} побед / {DEMO_STATS.hitSL} поражений</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{DEMO_STATS.hitTP} {t.winsLosses.split(' / ')[0]} / {DEMO_STATS.hitSL} {t.winsLosses.split(' / ')[1]}</p>
           </div>
           <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
-            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Достигнут TP</p>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>{t.hitTP}</p>
             <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#00c853' }}>{DEMO_STATS.hitTP}</p>
-            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>Take profit сработал</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{t.takeProfitReached}</p>
           </div>
         </div>
 
@@ -319,8 +397,8 @@ export default function Dashboard() {
           {/* Signals */}
           <div style={{ gridColumn: 'span 2' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '18px', margin: 0 }}>Активные сигналы</h2>
-              <span style={{ color: '#6b7280', fontSize: '14px' }}>{signals.length} сигналов</span>
+              <h2 style={{ fontSize: '18px', margin: 0 }}>{t.activeSignalsTitle}</h2>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>{signals.length} {t.signals}</span>
             </div>
             
             {signals.map((signal) => (
@@ -351,26 +429,14 @@ export default function Dashboard() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-                  <div>
-                    <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>Вход</p>
-                    <p style={{ fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.entry.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>Стоп-лосс</p>
-                    <p style={{ color: '#ff5252', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.stopLoss.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>TP1</p>
-                    <p style={{ color: '#00c853', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.takeProfit1.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>TP2</p>
-                    <p style={{ color: '#00c853', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.takeProfit2.toLocaleString()}</p>
-                  </div>
+                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>{t.entry}</p><p style={{ fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.entry.toLocaleString()}</p></div>
+                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>{t.stopLoss}</p><p style={{ color: '#ff5252', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.stopLoss.toLocaleString()}</p></div>
+                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>TP1</p><p style={{ color: '#00c853', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.takeProfit1.toLocaleString()}</p></div>
+                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>TP2</p><p style={{ color: '#00c853', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.takeProfit2.toLocaleString()}</p></div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', paddingTop: '12px', borderTop: '1px solid #1c1c2e', alignItems: 'center' }}>
-                  <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoffPhase}</strong> | KZ: <strong style={{ color: '#fff' }}>{signal.killZone.toLowerCase()}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stopLoss, signal.takeProfit1)}</strong></span>
+                  <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoffPhase}</strong> | KZ: <strong style={{ color: '#fff' }}>{getKillZoneName(signal.killZone)}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stopLoss, signal.takeProfit1)}</strong></span>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button 
                       onClick={() => openAnalysis(signal)}
@@ -384,7 +450,7 @@ export default function Dashboard() {
                         cursor: 'pointer'
                       }}
                     >
-                      📊 Анализ
+                      📊 {t.analysis}
                     </button>
                     {signal.status === 'ACTIVE' ? (
                       <>
@@ -400,7 +466,7 @@ export default function Dashboard() {
                             cursor: 'pointer'
                           }}
                         >
-                          ✅ Победа
+                          ✅ {t.win}
                         </button>
                         <button 
                           onClick={() => submitFeedback(signal.id, 'LOSS')}
@@ -414,7 +480,7 @@ export default function Dashboard() {
                             cursor: 'pointer'
                           }}
                         >
-                          ❌ Поражение
+                          ❌ {t.loss}
                         </button>
                       </>
                     ) : (
@@ -425,7 +491,7 @@ export default function Dashboard() {
                         background: signal.status === 'WIN' ? 'rgba(0, 200, 83, 0.2)' : 'rgba(255, 82, 82, 0.2)',
                         color: signal.status === 'WIN' ? '#00c853' : '#ff5252'
                       }}>
-                        {signal.status === 'WIN' ? 'Победа' : 'Поражение'}
+                        {signal.status === 'WIN' ? t.won : t.lost}
                       </span>
                     )}
                   </div>
@@ -439,10 +505,15 @@ export default function Dashboard() {
             {/* Kill Zones */}
             <div style={{ background: '#13131f', borderRadius: '12px', padding: '16px', marginBottom: '16px', border: '1px solid #1c1c2e' }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ⏰ Статус Kill Zone
+                ⏰ {t.killZoneStatus}
               </h3>
               
-              {KILL_ZONES.map((zone, idx) => (
+              {[
+                { name: lang === 'ru' ? 'Азиатская сессия' : 'Asian Session', time: '20:00 - 22:00 EST', volatility: 'Medium', active: false },
+                { name: lang === 'ru' ? 'Лондонская сессия' : 'London Session', time: '02:00 - 05:00 EST', volatility: 'High', active: false },
+                { name: lang === 'ru' ? 'Нью-Йоркская сессия' : 'New York Session', time: '07:00 - 10:00 EST', volatility: 'High', active: true },
+                { name: lang === 'ru' ? 'Закрытие Лондона' : 'London Close', time: '10:00 - 12:00 EST', volatility: 'Medium', active: false },
+              ].map((zone, idx) => (
                 <div key={idx} style={{ 
                   padding: '12px', 
                   marginBottom: '8px', 
@@ -461,7 +532,7 @@ export default function Dashboard() {
                       background: zone.volatility === 'High' ? 'rgba(255, 82, 82, 0.2)' : 'rgba(255, 179, 0, 0.2)',
                       color: zone.volatility === 'High' ? '#ff5252' : '#ffb300'
                     }}>
-                      {zone.volatility}
+                      {getVolatilityLabel(zone.volatility)}
                     </span>
                   </div>
                   <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>{zone.time}</p>
@@ -471,7 +542,7 @@ export default function Dashboard() {
 
             {/* Quick Actions */}
             <div style={{ background: '#13131f', borderRadius: '12px', padding: '16px', border: '1px solid #1c1c2e' }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>Быстрые действия</h3>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>{t.quickActions}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <button 
                   onClick={generateSignal}
@@ -490,7 +561,7 @@ export default function Dashboard() {
                     gap: '8px'
                   }}
                 >
-                  {generating ? '⏳ Генерация...' : '⚡ Сгенерировать сигнал'}
+                  {generating ? `⏳ ${t.generating}` : `⚡ ${t.generateSignal}`}
                 </button>
               </div>
             </div>
@@ -512,7 +583,8 @@ export default function Dashboard() {
           justifyContent: 'center',
           zIndex: 1000,
           padding: '20px'
-        }}>
+        }}
+        >
           <div style={{
             background: '#13131f',
             borderRadius: '16px',
@@ -524,7 +596,7 @@ export default function Dashboard() {
           }}>
             <div style={{ padding: '24px', borderBottom: '1px solid #1c1c2e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '20px' }}>📊 Анализ сигнала</h2>
+                <h2 style={{ margin: 0, fontSize: '20px' }}>📊 {t.signalAnalysis}</h2>
                 <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>{selectedSignal?.pair} • {selectedSignal?.direction}</p>
               </div>
               <button 
@@ -537,44 +609,38 @@ export default function Dashboard() {
                   cursor: 'pointer'
                 }}
               >
-                ×
+                {t.close}
               </button>
             </div>
 
             <div style={{ padding: '24px' }}>
-              {/* Wyckoff Analysis */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>📈 Анализ Wyckoff</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>📈 {t.wyckoffAnalysis}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.wyckoff}</p>
               </div>
 
-              {/* SMC Analysis */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🎯 Концепция Smart Money</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🎯 {t.smartMoneyConcepts}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.smc}</p>
               </div>
 
-              {/* Kill Zone */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⏰ Время Kill Zone</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⏰ {t.killZoneTiming}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.killZone}</p>
               </div>
 
-              {/* Entry Logic */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🚪 Логика входа</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🚪 {t.entryLogic}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.entry}</p>
               </div>
 
-              {/* Risk Management */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⚠️ Управление рисками</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⚠️ {t.riskManagement}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.risk}</p>
               </div>
 
-              {/* Reward */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>💰 Цели прибыли</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>💰 {t.rewardTargets}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.reward}</p>
               </div>
 
@@ -585,20 +651,13 @@ export default function Dashboard() {
                 border: '1px solid rgba(0, 212, 255, 0.3)'
               }}>
                 <p style={{ margin: 0, fontSize: '14px', color: '#00d4ff' }}>
-                  ✨ Уверенность AI: <strong>{selectedSignal?.confidence}%</strong>
+                  ✨ {t.aiConfidence}: <strong>{selectedSignal?.confidence}%</strong>
                 </p>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
     </div>
   )
 }

@@ -6,6 +6,7 @@ const API_URL = 'https://cryptotraderai-api.onrender.com'
 
 export default function MLSettings() {
   const [mounted, setMounted] = useState(false)
+  const [lang, setLang] = useState('ru')
   const [settings, setSettings] = useState({
     min_confidence: 70,
     min_risk_reward: 1.5,
@@ -25,6 +26,7 @@ export default function MLSettings() {
   })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [buttonTest, setButtonTest] = useState('')
 
   useEffect(() => {
     setMounted(true)
@@ -92,12 +94,27 @@ export default function MLSettings() {
 
   const toggleLearning = async () => {
     const endpoint = learningStatus.learning_enabled ? 'pause-learning' : 'resume-learning'
+    const actionText = learningStatus.learning_enabled ? 'пауза' : 'возобновление'
+    setButtonTest(`Отправка запроса: ${endpoint}...`)
+    
     try {
       const res = await fetch(`${API_URL}/api/ml/${endpoint}`, {
         method: 'POST'
       })
       if (res.ok) {
+        const data = await res.json()
+        setButtonTest(`✅ Успех: ${data.message || actionText}`)
         fetchLearningStatus()
+        setTimeout(() => setButtonTest(''), 3000)
+      } else {
+        setButtonTest(`❌ Ошибка: ${res.status}`)
+        setTimeout(() => setButtonTest(''), 3000)
+      }
+    } catch (e) {
+      setButtonTest('❌ Ошибка сети')
+      setTimeout(() => setButtonTest(''), 3000)
+    }
+  }
       }
     } catch (e) {
       console.log('Toggle failed')
