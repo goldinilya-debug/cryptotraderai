@@ -106,37 +106,65 @@ const SIGNALS_DATA = [
     direction: 'LONG',
     confidence: 82,
     entry: 63500,
-    stopLoss: 62800,
-    takeProfit1: 64500,
-    takeProfit2: 65500,
-    wyckoffPhase: 'accumulation',
-    killZone: 'London',
+    stop_loss: 62800,
+    take_profit_1: 64500,
+    take_profit_2: 65500,
+    wyckoff_phase: 'accumulation',
+    kill_zone: 'London',
     timeframe: '4H',
     exchange: 'Binance',
     status: 'ACTIVE',
-    analysis: {
-      wyckoff: 'Price is in accumulation phase after markdown. Spring test completed with volume confirmation.',
-      smc: 'Liquidity sweep below $62,800 followed by bullish engulfing. Order block at $63,200 respected.',
-      killZone: 'London Open provides high volatility window. Entry aligned with institutional flow.',
-      entry: 'Long at $63,500 after BOS above $63,200 with volume expansion.',
-      risk: 'Stop below accumulation low at $62,800. Risk: 1.1% of account.',
-      reward: 'TP1 at $64,500 (1:1.4 R:R). TP2 at $65,500 (1:2.8 R:R).'
-    }
+    analysis: 'Price in accumulation. Spring test completed. Long at $63,500 after BOS.'
   },
   {
     id: '2',
     pair: 'ETH/USDT',
     direction: 'SHORT',
     confidence: 75,
-    entry: 2031.69,
-    stopLoss: 2054.05,
-    takeProfit1: 1961.62,
-    takeProfit2: 1928.54,
-    wyckoffPhase: 'markup',
-    killZone: 'New York',
+    entry: 3500.00,
+    stop_loss: 3550.00,
+    take_profit_1: 3400.00,
+    take_profit_2: 3300.00,
+    wyckoff_phase: 'distribution',
+    kill_zone: 'New York',
     timeframe: '4H',
     exchange: 'BingX',
     status: 'ACTIVE',
+    analysis: 'Distribution at top. UTAD pattern. Short at $3,500 after rejection.'
+  },
+  {
+    id: '3',
+    pair: '1000PEPE/USDT',
+    direction: 'LONG',
+    confidence: 78,
+    entry: 0.0085,
+    stop_loss: 0.0082,
+    take_profit_1: 0.0092,
+    take_profit_2: 0.0100,
+    wyckoff_phase: 'accumulation',
+    kill_zone: 'Asian',
+    timeframe: '4H',
+    exchange: 'Binance',
+    status: 'ACTIVE',
+    analysis: 'Meme momentum building. Breakout from accumulation zone.'
+  },
+  {
+    id: '4',
+    pair: 'HYPE/USDT',
+    direction: 'SHORT',
+    confidence: 71,
+    entry: 18.50,
+    stop_loss: 19.20,
+    take_profit_1: 17.20,
+    take_profit_2: 16.00,
+    wyckoff_phase: 'distribution',
+    kill_zone: 'London Close',
+    timeframe: '4H',
+    exchange: 'KuCoin',
+    status: 'ACTIVE',
+    analysis: 'Distribution after markup. Sign of weakness with volume.'
+  }
+]
     analysis: {
       wyckoff: 'Distribution forming at top of markup. UTAD pattern visible.',
       smc: 'Fair Value Gap above $2,050 likely to be filled. Bearish order block at $2,040.',
@@ -240,11 +268,14 @@ export default function Dashboard() {
 
   const generateSignal = async () => {
     setGenerating(true)
+    const pairs = ['BTC/USDT', 'ETH/USDT', '1000PEPE/USDT', 'HYPE/USDT', 'SOL/USDT', 'AVAX/USDT']
+    const randomPair = pairs[Math.floor(Math.random() * pairs.length)]
+    
     try {
       const res = await fetch(`${API_URL}/api/signals/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pair: 'BTC/USDT', timeframe: '4H', exchange: 'binance' })
+        body: JSON.stringify({ pair: randomPair, timeframe: '4H', exchange: 'binance' })
       })
       if (res.ok) {
         const newSignal = await res.json()
@@ -252,21 +283,23 @@ export default function Dashboard() {
       } else {
         // Fallback demo generation
         await new Promise(r => setTimeout(r, 1500))
+        const isLong = Math.random() > 0.5
+        const basePrice = randomPair.includes('PEPE') ? 0.008 : randomPair.includes('HYPE') ? 18 : randomPair.includes('BTC') ? 63500 : randomPair.includes('ETH') ? 3500 : 140
         const demoSignal = {
           id: Date.now().toString(),
-          pair: 'BTC/USDT',
-          direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
+          pair: randomPair,
+          direction: isLong ? 'LONG' : 'SHORT',
           confidence: Math.floor(Math.random() * 20) + 70,
-          entry: 63500,
-          stop_loss: 62800,
-          take_profit_1: 64500,
-          take_profit_2: 65500,
-          wyckoff_phase: 'accumulation',
-          kill_zone: 'New York',
+          entry: basePrice,
+          stop_loss: isLong ? basePrice * 0.985 : basePrice * 1.015,
+          take_profit_1: isLong ? basePrice * 1.03 : basePrice * 0.97,
+          take_profit_2: isLong ? basePrice * 1.06 : basePrice * 0.94,
+          wyckoff_phase: isLong ? 'accumulation' : 'distribution',
+          kill_zone: ['London', 'New York', 'Asian'][Math.floor(Math.random() * 3)],
           timeframe: '4H',
           exchange: 'Binance',
           status: 'ACTIVE',
-          analysis: 'AI generated signal'
+          analysis: `AI generated ${isLong ? 'LONG' : 'SHORT'} signal for ${randomPair}`
         }
         setSignals([demoSignal, ...signals])
       }
@@ -289,7 +322,14 @@ export default function Dashboard() {
 
   const getDirectionColor = (dir) => dir === 'LONG' ? '#00c853' : '#ff5252'
   const getDirectionBg = (dir) => dir === 'LONG' ? 'rgba(0, 200, 83, 0.1)' : 'rgba(255, 82, 82, 0.1)'
-  const getPairIcon = (pair) => pair.includes('BTC') ? '₿' : pair.includes('ETH') ? 'Ξ' : pair.includes('SOL') ? '◎' : '◈'
+  const getPairIcon = (pair) => {
+    if (pair.includes('BTC')) return '₿'
+    if (pair.includes('ETH')) return 'Ξ'
+    if (pair.includes('SOL')) return '◎'
+    if (pair.includes('PEPE')) return '🐸'
+    if (pair.includes('HYPE')) return '🚀'
+    return '◈'
+  }
   const calcRR = (entry, sl, tp) => ((tp - entry) / (entry - sl)).toFixed(1)
 
   const getKillZoneName = (kz) => {

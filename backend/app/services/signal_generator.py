@@ -52,7 +52,13 @@ OUTPUT FORMAT (JSON only):
     "risk_reward": float
 }}
 
-RULES:
+CRITICAL RULES FOR DIRECTION:
+- LONG = Buy/Long position (expecting price to go UP). Entry < Take Profit, Stop Loss < Entry
+- SHORT = Sell/Short position (expecting price to go DOWN). Entry > Take Profit, Stop Loss > Entry
+- For LONG: stop_loss MUST be below entry, take_profit MUST be above entry
+- For SHORT: stop_loss MUST be above entry, take_profit MUST be below entry
+
+OTHER RULES:
 - Minimum confidence: 70% to generate signal
 - Risk:Reward minimum 1:2
 - Stop loss must be based on technical level (not fixed %)
@@ -121,6 +127,22 @@ ML INSIGHTS:
         # Parse response
         content = response.choices[0].message.content
         signal_data = json.loads(content)
+        
+        # Validate direction vs price levels
+        if signal_data["direction"] == "LONG":
+            if signal_data["stop_loss"] >= signal_data["entry"]:
+                signal_data["stop_loss"] = signal_data["entry"] * 0.985  # 1.5% below entry
+            if signal_data["take_profit_1"] <= signal_data["entry"]:
+                signal_data["take_profit_1"] = signal_data["entry"] * 1.03  # 3% above entry
+            if signal_data.get("take_profit_2") and signal_data["take_profit_2"] <= signal_data["entry"]:
+                signal_data["take_profit_2"] = signal_data["entry"] * 1.06  # 6% above entry
+        elif signal_data["direction"] == "SHORT":
+            if signal_data["stop_loss"] <= signal_data["entry"]:
+                signal_data["stop_loss"] = signal_data["entry"] * 1.015  # 1.5% above entry
+            if signal_data["take_profit_1"] >= signal_data["entry"]:
+                signal_data["take_profit_1"] = signal_data["entry"] * 0.97  # 3% below entry
+            if signal_data.get("take_profit_2") and signal_data["take_profit_2"] >= signal_data["entry"]:
+                signal_data["take_profit_2"] = signal_data["entry"] * 0.94  # 6% below entry
         
         # Add metadata
         signal_data["id"] = f"sig_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
