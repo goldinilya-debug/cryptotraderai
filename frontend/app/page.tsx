@@ -108,10 +108,10 @@ const SIGNALS = [
 
 // Kill Zone данные
 const KILL_ZONES = [
-  { name: 'Asian Kill Zone', time: '20:00 - 22:00 EST', volatility: 'Medium', active: false },
-  { name: 'London Kill Zone', time: '02:00 - 05:00 EST', volatility: 'High', active: false },
-  { name: 'New York Kill Zone', time: '07:00 - 10:00 EST', volatility: 'High', active: true },
-  { name: 'London Close', time: '10:00 - 12:00 EST', volatility: 'Medium', active: false },
+  { name: 'Азиатская сессия', time: '20:00 - 22:00 EST', volatility: 'Средняя', active: false },
+  { name: 'Лондонская сессия', time: '02:00 - 05:00 EST', volatility: 'Высокая', active: false },
+  { name: 'Нью-Йоркская сессия', time: '07:00 - 10:00 EST', volatility: 'Высокая', active: true },
+  { name: 'Закрытие Лондона', time: '10:00 - 12:00 EST', volatility: 'Средняя', active: false },
 ]
 
 const API_URL = 'https://cryptotraderai-api.onrender.com'
@@ -261,13 +261,13 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 style={{ margin: 0, fontSize: '20px' }}>CryptoTraderAI</h1>
-              <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>AI-powered trading signals</p>
+              <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>AI-сигналы для трейдинга</p>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b7280', fontSize: '14px' }}>
               <div style={{ width: '8px', height: '8px', background: '#00c853', borderRadius: '50%', animation: 'pulse 2s infinite' }}></div>
-              <span>Live</span>
+              <span>В эфире</span>
               <span>•</span>
               <span>{currentTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
             </div>
@@ -294,24 +294,24 @@ export default function Dashboard() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
           <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
-            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Total Signals</p>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Всего сигналов</p>
             <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0 }}>{DEMO_STATS.totalSignals}</p>
-            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>All time generated</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>Сгенерировано всего</p>
           </div>
           <div style={{ background: 'rgba(0, 212, 255, 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0, 212, 255, 0.3)' }}>
-            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Active Signals</p>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Активные сигналы</p>
             <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#00d4ff' }}>{signals.length}</p>
-            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>Currently open</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>Открытые позиции</p>
           </div>
           <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
             <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Win Rate</p>
             <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#ffb300' }}>{DEMO_STATS.winRate}%</p>
-            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{DEMO_STATS.hitTP} wins / {DEMO_STATS.hitSL} losses</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{DEMO_STATS.hitTP} побед / {DEMO_STATS.hitSL} поражений</p>
           </div>
           <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
-            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Hit TP</p>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>Достигнут TP</p>
             <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#00c853' }}>{DEMO_STATS.hitTP}</p>
-            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>Take profit reached</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>Take profit сработал</p>
           </div>
         </div>
 
@@ -319,8 +319,8 @@ export default function Dashboard() {
           {/* Signals */}
           <div style={{ gridColumn: 'span 2' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '18px', margin: 0 }}>Active Signals</h2>
-              <span style={{ color: '#6b7280', fontSize: '14px' }}>{signals.length} signals</span>
+              <h2 style={{ fontSize: '18px', margin: 0 }}>Активные сигналы</h2>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>{signals.length} сигналов</span>
             </div>
             
             {signals.map((signal) => (
@@ -352,11 +352,11 @@ export default function Dashboard() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
                   <div>
-                    <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>Entry</p>
+                    <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>Вход</p>
                     <p style={{ fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.entry.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>Stop Loss</p>
+                    <p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>Стоп-лосс</p>
                     <p style={{ color: '#ff5252', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.stopLoss.toLocaleString()}</p>
                   </div>
                   <div>
@@ -384,7 +384,7 @@ export default function Dashboard() {
                         cursor: 'pointer'
                       }}
                     >
-                      📊 Analysis
+                      📊 Анализ
                     </button>
                     {signal.status === 'ACTIVE' ? (
                       <>
@@ -400,7 +400,7 @@ export default function Dashboard() {
                             cursor: 'pointer'
                           }}
                         >
-                          ✅ WIN
+                          ✅ Победа
                         </button>
                         <button 
                           onClick={() => submitFeedback(signal.id, 'LOSS')}
@@ -414,7 +414,7 @@ export default function Dashboard() {
                             cursor: 'pointer'
                           }}
                         >
-                          ❌ LOSS
+                          ❌ Поражение
                         </button>
                       </>
                     ) : (
@@ -425,7 +425,7 @@ export default function Dashboard() {
                         background: signal.status === 'WIN' ? 'rgba(0, 200, 83, 0.2)' : 'rgba(255, 82, 82, 0.2)',
                         color: signal.status === 'WIN' ? '#00c853' : '#ff5252'
                       }}>
-                        {signal.status}
+                        {signal.status === 'WIN' ? 'Победа' : 'Поражение'}
                       </span>
                     )}
                   </div>
@@ -439,7 +439,7 @@ export default function Dashboard() {
             {/* Kill Zones */}
             <div style={{ background: '#13131f', borderRadius: '12px', padding: '16px', marginBottom: '16px', border: '1px solid #1c1c2e' }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ⏰ Kill Zone Status
+                ⏰ Статус Kill Zone
               </h3>
               
               {KILL_ZONES.map((zone, idx) => (
@@ -471,7 +471,7 @@ export default function Dashboard() {
 
             {/* Quick Actions */}
             <div style={{ background: '#13131f', borderRadius: '12px', padding: '16px', border: '1px solid #1c1c2e' }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>Quick Actions</h3>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>Быстрые действия</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <button 
                   onClick={generateSignal}
@@ -490,7 +490,7 @@ export default function Dashboard() {
                     gap: '8px'
                   }}
                 >
-                  {generating ? '⏳ Generating...' : '⚡ Generate Signal'}
+                  {generating ? '⏳ Генерация...' : '⚡ Сгенерировать сигнал'}
                 </button>
               </div>
             </div>
@@ -524,7 +524,7 @@ export default function Dashboard() {
           }}>
             <div style={{ padding: '24px', borderBottom: '1px solid #1c1c2e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '20px' }}>📊 Signal Analysis</h2>
+                <h2 style={{ margin: 0, fontSize: '20px' }}>📊 Анализ сигнала</h2>
                 <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>{selectedSignal?.pair} • {selectedSignal?.direction}</p>
               </div>
               <button 
@@ -544,37 +544,37 @@ export default function Dashboard() {
             <div style={{ padding: '24px' }}>
               {/* Wyckoff Analysis */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>📈 Wyckoff Analysis</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>📈 Анализ Wyckoff</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.wyckoff}</p>
               </div>
 
               {/* SMC Analysis */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🎯 Smart Money Concepts</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🎯 Концепция Smart Money</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.smc}</p>
               </div>
 
               {/* Kill Zone */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⏰ Kill Zone Timing</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⏰ Время Kill Zone</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.killZone}</p>
               </div>
 
               {/* Entry Logic */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🚪 Entry Logic</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🚪 Логика входа</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.entry}</p>
               </div>
 
               {/* Risk Management */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⚠️ Risk Management</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⚠️ Управление рисками</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.risk}</p>
               </div>
 
               {/* Reward */}
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>💰 Reward Targets</h3>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>💰 Цели прибыли</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.reward}</p>
               </div>
 
@@ -585,7 +585,7 @@ export default function Dashboard() {
                 border: '1px solid rgba(0, 212, 255, 0.3)'
               }}>
                 <p style={{ margin: 0, fontSize: '14px', color: '#00d4ff' }}>
-                  ✨ AI Confidence: <strong>{selectedSignal?.confidence}%</strong>
+                  ✨ Уверенность AI: <strong>{selectedSignal?.confidence}%</strong>
                 </p>
               </div>
             </div>
