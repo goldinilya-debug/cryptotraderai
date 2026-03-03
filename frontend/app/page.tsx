@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 
-// Translations
 const translations = {
   ru: {
     title: 'CryptoTraderAI',
@@ -22,10 +21,6 @@ const translations = {
     entry: 'Вход',
     stopLoss: 'Стоп-лосс',
     analysis: 'Анализ',
-    win: 'Победа',
-    loss: 'Поражение',
-    won: 'Победа',
-    lost: 'Поражение',
     killZoneStatus: 'Статус Kill Zone',
     quickActions: 'Быстрые действия',
     generateSignal: 'Сгенерировать сигнал',
@@ -45,8 +40,11 @@ const translations = {
     londonClose: 'Закрытие Лондона',
     medium: 'Средняя',
     high: 'Высокая',
-    active: 'Активно',
-    loading: 'Загрузка...'
+    active: 'АКТИВЕН',
+    loading: 'Загрузка...',
+    statistics: 'Статистика',
+    wins: 'Побед',
+    losses: 'Поражений'
   },
   en: {
     title: 'CryptoTraderAI',
@@ -66,10 +64,6 @@ const translations = {
     entry: 'Entry',
     stopLoss: 'Stop Loss',
     analysis: 'Analysis',
-    win: 'WIN',
-    loss: 'LOSS',
-    won: 'WON',
-    lost: 'LOST',
     killZoneStatus: 'Kill Zone Status',
     quickActions: 'Quick Actions',
     generateSignal: 'Generate Signal',
@@ -89,12 +83,14 @@ const translations = {
     londonClose: 'London Close',
     medium: 'Medium',
     high: 'High',
-    active: 'Active',
-    loading: 'Loading...'
+    active: 'ACTIVE',
+    loading: 'Loading...',
+    statistics: 'Statistics',
+    wins: 'Wins',
+    losses: 'Losses'
   }
 }
 
-// Demo данные
 const DEMO_STATS = {
   totalSignals: 42,
   activeSignals: 4,
@@ -198,18 +194,16 @@ const SIGNALS_DATA = [
   }
 ]
 
-const API_URL = 'https://cryptotraderai-api.onrender.com'
-
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false)
   const [lang, setLang] = useState('ru')
   const [signals, setSignals] = useState(SIGNALS_DATA)
   const [generating, setGenerating] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [selectedSignal, setSelectedSignal] = useState<any>(null)
+  const [selectedSignal, setSelectedSignal] = useState(null)
   const [showAnalysis, setShowAnalysis] = useState(false)
 
-  const t = translations[lang as keyof typeof translations]
+  const t = translations[lang]
 
   useEffect(() => {
     setMounted(true)
@@ -247,7 +241,7 @@ export default function Dashboard() {
     setGenerating(false)
   }
 
-  const openAnalysis = (signal: any) => {
+  const openAnalysis = (signal) => {
     setSelectedSignal(signal)
     setShowAnalysis(true)
   }
@@ -257,45 +251,19 @@ export default function Dashboard() {
     setSelectedSignal(null)
   }
 
-  const submitFeedback = async (signalId: string, result: string) => {
-    try {
-      const res = await fetch(`${API_URL}/api/ml/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          signal_id: signalId, 
-          result: result,
-          exit_price: 0,
-          pnl_percent: 0
-        })
-      })
-      if (res.ok) {
-        alert(lang === 'ru' ? `✅ Сигнал отмечен как ${result === 'WIN' ? 'победа' : 'поражение'}!` : `✅ Signal marked as ${result}!`)
-      }
-    } catch (e) {
-      // Fallback
-    }
-    setSignals(signals.map(s => s.id === signalId ? {...s, status: result} : s))
-  }
+  const getDirectionColor = (dir) => dir === 'LONG' ? '#00c853' : '#ff5252'
+  const getDirectionBg = (dir) => dir === 'LONG' ? 'rgba(0, 200, 83, 0.1)' : 'rgba(255, 82, 82, 0.1)'
+  const getPairIcon = (pair) => pair.includes('BTC') ? '₿' : pair.includes('ETH') ? 'Ξ' : pair.includes('SOL') ? '◎' : '◈'
+  const calcRR = (entry, sl, tp) => ((tp - entry) / (entry - sl)).toFixed(1)
 
-  const getDirectionColor = (dir: string) => dir === 'LONG' ? '#00c853' : '#ff5252'
-  const getDirectionBg = (dir: string) => dir === 'LONG' ? 'rgba(0, 200, 83, 0.1)' : 'rgba(255, 82, 82, 0.1)'
-  const getPairIcon = (pair: string) => pair.includes('BTC') ? '₿' : pair.includes('ETH') ? 'Ξ' : pair.includes('SOL') ? '◎' : '◈'
-  const calcRR = (entry: number, sl: number, tp: number) => ((tp - entry) / (entry - sl)).toFixed(1)
-
-  const getKillZoneName = (kz: string) => {
+  const getKillZoneName = (kz) => {
     if (lang === 'ru') {
-      if (kz === 'Asian') return 'Азиатская сессия'
-      if (kz === 'London') return 'Лондонская сессия'
-      if (kz === 'New York') return 'Нью-Йоркская сессия'
-      if (kz === 'London Close') return 'Закрытие Лондона'
+      if (kz === 'Asian') return 'Азиатская'
+      if (kz === 'London') return 'Лондон'
+      if (kz === 'New York') return 'Нью-Йорк'
+      if (kz === 'London Close') return 'Закр. Лондона'
     }
     return kz
-  }
-
-  const getVolatilityLabel = (v: string) => {
-    if (lang === 'ru') return v === 'High' ? 'Высокая' : 'Средняя'
-    return v
   }
 
   if (!mounted) {
@@ -308,7 +276,6 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#fff', fontFamily: 'system-ui, sans-serif' }}>
-      {/* Header */}
       <header style={{ borderBottom: '1px solid #1c1c2e', padding: '16px 24px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -333,7 +300,6 @@ export default function Dashboard() {
               <span>•</span>
               <span>{currentTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
             </div>
-            
             <button
               onClick={() => setLang(lang === 'ru' ? 'en' : 'ru')}
               style={{
@@ -349,7 +315,6 @@ export default function Dashboard() {
             >
               {lang === 'ru' ? '🇷🇺 RU' : '🇬🇧 EN'}
             </button>
-            
             <a 
               href="/settings"
               style={{
@@ -369,7 +334,6 @@ export default function Dashboard() {
       </header>
 
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-        {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
           <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
             <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>{t.totalSignals}</p>
@@ -394,7 +358,6 @@ export default function Dashboard() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
-          {/* Signals */}
           <div style={{ gridColumn: 'span 2' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{ fontSize: '18px', margin: 0 }}>{t.activeSignalsTitle}</h2>
@@ -436,7 +399,7 @@ export default function Dashboard() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', paddingTop: '12px', borderTop: '1px solid #1c1c2e', alignItems: 'center' }}>
-                  <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoffPhase}</strong> | KZ: <strong style={{ color: '#fff' }}>{getKillZoneName(signal.killZone)}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stopLoss, signal.takeProfit1)}</strong> | <strong style={{ color: signal.status === 'WIN' ? '#00c853' : signal.status === 'LOSS' ? '#ff5252' : '#ffb300' }}>{signal.status === 'ACTIVE' ? (lang === 'ru' ? 'АКТИВЕН' : 'ACTIVE') : signal.status}</strong></span>
+                  <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoffPhase}</strong> | KZ: <strong style={{ color: '#fff' }}>{getKillZoneName(signal.killZone)}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stopLoss, signal.takeProfit1)}</strong></span>
                   <button 
                     onClick={() => openAnalysis(signal)}
                     style={{
@@ -452,50 +415,36 @@ export default function Dashboard() {
                     📊 {t.analysis}
                   </button>
                 </div>
-                        fontSize: '11px',
-                        background: signal.status === 'WIN' ? 'rgba(0, 200, 83, 0.2)' : 'rgba(255, 82, 82, 0.2)',
-                        color: signal.status === 'WIN' ? '#00c853' : '#ff5252'
-                      }}>
-                        {signal.status === 'WIN' ? t.won : t.lost}
-                      </span>
-                    )}
-                  </div>
-                </div>
+              </div>
             ))}
           </div>
 
-          {/* Sidebar */}
           <div>
-            {/* Statistics -->
-            <div style={{ background: "#13131f", borderRadius: "12px", padding: "16px", marginBottom: "16px", border: "1px solid #1c1c2e" }}>
-              <h3 style={{ margin: "0 0 16px 0", fontSize: "16px" }}>📊 {lang === 'ru' ? 'Статистика' : 'Statistics'}</h3>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-                <span style={{ color: "#6b7280", fontSize: "13px" }}>{lang === 'ru' ? 'Win Rate' : 'Win Rate'}</span>
-                <span style={{ color: "#00c853", fontWeight: "bold" }}>{DEMO_STATS.winRate}%</span>
+            <div style={{ background: '#13131f', borderRadius: '12px', padding: '16px', marginBottom: '16px', border: '1px solid #1c1c2e' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>📊 {t.statistics}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ color: '#6b7280', fontSize: '13px' }}>{t.winRate}</span>
+                <span style={{ color: '#00c853', fontWeight: 'bold' }}>{DEMO_STATS.winRate}%</span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div style={{ background: "#1c1c2e", padding: "10px", borderRadius: "8px", textAlign: "center" }}>
-                  <p style={{ margin: 0, fontSize: "11px", color: "#6b7280" }}>{lang === 'ru' ? 'Побед' : 'Wins'}</p>
-                  <p style={{ margin: "4px 0 0 0", fontSize: "18px", fontWeight: "bold", color: "#00c853" }}>{DEMO_STATS.hitTP}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ background: '#1c1c2e', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{t.wins}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#00c853' }}>{DEMO_STATS.hitTP}</p>
                 </div>
-                <div style={{ background: "#1c1c2e", padding: "10px", borderRadius: "8px", textAlign: "center" }}>
-                  <p style={{ margin: 0, fontSize: "11px", color: "#6b7280" }}>{lang === 'ru' ? 'Поражений' : 'Losses'}</p>
-                  <p style={{ margin: "4px 0 0 0", fontSize: "18px", fontWeight: "bold", color: "#ff5252" }}>{DEMO_STATS.hitSL}</p>
+                <div style={{ background: '#1c1c2e', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{t.losses}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#ff5252' }}>{DEMO_STATS.hitSL}</p>
                 </div>
               </div>
             </div>
 
-            {/* Kill Zones */}
             <div style={{ background: '#13131f', borderRadius: '12px', padding: '16px', marginBottom: '16px', border: '1px solid #1c1c2e' }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ⏰ {t.killZoneStatus}
-              </h3>
-              
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>⏰ {t.killZoneStatus}</h3>
               {[
-                { name: lang === 'ru' ? 'Азиатская сессия' : 'Asian Session', time: '20:00 - 22:00 EST', volatility: 'Medium', active: false },
-                { name: lang === 'ru' ? 'Лондонская сессия' : 'London Session', time: '02:00 - 05:00 EST', volatility: 'High', active: false },
-                { name: lang === 'ru' ? 'Нью-Йоркская сессия' : 'New York Session', time: '07:00 - 10:00 EST', volatility: 'High', active: true },
-                { name: lang === 'ru' ? 'Закрытие Лондона' : 'London Close', time: '10:00 - 12:00 EST', volatility: 'Medium', active: false },
+                { name: t.asianSession, time: '20:00 - 22:00 EST', volatility: t.medium, active: false },
+                { name: t.londonSession, time: '02:00 - 05:00 EST', volatility: t.high, active: false },
+                { name: t.newYorkSession, time: '07:00 - 10:00 EST', volatility: t.high, active: true },
+                { name: t.londonClose, time: '10:00 - 12:00 EST', volatility: t.medium, active: false },
               ].map((zone, idx) => (
                 <div key={idx} style={{ 
                   padding: '12px', 
@@ -505,95 +454,59 @@ export default function Dashboard() {
                   border: zone.active ? '1px solid rgba(0, 212, 255, 0.3)' : '1px solid transparent'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: zone.active ? 'bold' : 'normal', color: zone.active ? '#00d4ff' : '#fff' }}>
-                      {zone.name}
-                    </span>
+                    <span style={{ fontWeight: zone.active ? 'bold' : 'normal', color: zone.active ? '#00d4ff' : '#fff' }}>{zone.name}</span>
                     <span style={{ 
                       fontSize: '11px', 
                       padding: '2px 8px', 
                       borderRadius: '4px',
-                      background: zone.volatility === 'High' ? 'rgba(255, 82, 82, 0.2)' : 'rgba(255, 179, 0, 0.2)',
-                      color: zone.volatility === 'High' ? '#ff5252' : '#ffb300'
-                    }}>
-                      {getVolatilityLabel(zone.volatility)}
-                    </span>
+                      background: zone.volatility === t.high ? 'rgba(255, 82, 82, 0.2)' : 'rgba(255, 179, 0, 0.2)',
+                      color: zone.volatility === t.high ? '#ff5252' : '#ffb300'
+                    }}>{zone.volatility}</span>
                   </div>
                   <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>{zone.time}</p>
                 </div>
               ))}
             </div>
 
-            {/* Quick Actions */}
             <div style={{ background: '#13131f', borderRadius: '12px', padding: '16px', border: '1px solid #1c1c2e' }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>{t.quickActions}</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <button 
-                  onClick={generateSignal}
-                  disabled={generating}
-                  style={{ 
-                    padding: '12px', 
-                    background: generating ? '#1c1c2e' : '#00d4ff', 
-                    color: generating ? '#6b7280' : '#0a0a0f', 
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 'bold',
-                    cursor: generating ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  {generating ? `⏳ ${t.generating}` : `⚡ ${t.generateSignal}`}
-                </button>
-              </div>
+              <button 
+                onClick={generateSignal}
+                disabled={generating}
+                style={{ 
+                  width: '100%',
+                  padding: '12px', 
+                  background: generating ? '#1c1c2e' : '#00d4ff', 
+                  color: generating ? '#6b7280' : '#0a0a0f', 
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  cursor: generating ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {generating ? `⏳ ${t.generating}` : `⚡ ${t.generateSignal}`}
+              </button>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Analysis Modal */}
       {showAnalysis && selectedSignal && (
         <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px'
-        }}
-        >
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '20px'
+        }}>
           <div style={{
-            background: '#13131f',
-            borderRadius: '16px',
-            maxWidth: '600px',
-            width: '100%',
-            maxHeight: '80vh',
-            overflow: 'auto',
-            border: '1px solid #1c1c2e'
+            background: '#13131f', borderRadius: '16px', maxWidth: '600px', width: '100%',
+            maxHeight: '80vh', overflow: 'auto', border: '1px solid #1c1c2e'
           }}>
             <div style={{ padding: '24px', borderBottom: '1px solid #1c1c2e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '20px' }}>📊 {t.signalAnalysis}</h2>
                 <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>{selectedSignal?.pair} • {selectedSignal?.direction}</p>
               </div>
-              <button 
-                onClick={closeAnalysis}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#6b7280',
-                  fontSize: '24px',
-                  cursor: 'pointer'
-                }}
-              >
-                {t.close}
-              </button>
+              <button onClick={closeAnalysis} style={{ background: 'transparent', border: 'none', color: '#6b7280', fontSize: '24px', cursor: 'pointer' }}>{t.close}</button>
             </div>
 
             <div style={{ padding: '24px' }}>
@@ -601,41 +514,28 @@ export default function Dashboard() {
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>📈 {t.wyckoffAnalysis}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.wyckoff}</p>
               </div>
-
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🎯 {t.smartMoneyConcepts}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.smc}</p>
               </div>
-
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⏰ {t.killZoneTiming}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.killZone}</p>
               </div>
-
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🚪 {t.entryLogic}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.entry}</p>
               </div>
-
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⚠️ {t.riskManagement}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.risk}</p>
               </div>
-
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>💰 {t.rewardTargets}</h3>
                 <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.reward}</p>
               </div>
-
-              <div style={{ 
-                background: 'rgba(0, 212, 255, 0.1)', 
-                padding: '16px', 
-                borderRadius: '8px',
-                border: '1px solid rgba(0, 212, 255, 0.3)'
-              }}>
-                <p style={{ margin: 0, fontSize: '14px', color: '#00d4ff' }}>
-                  ✨ {t.aiConfidence}: <strong>{selectedSignal?.confidence}%</strong>
-                </p>
+              <div style={{ background: 'rgba(0, 212, 255, 0.1)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(0, 212, 255, 0.3)' }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#00d4ff' }}>✨ {t.aiConfidence}: <strong>{selectedSignal?.confidence}%</strong></p>
               </div>
             </div>
           </div>
