@@ -197,7 +197,7 @@ export default function Dashboard() {
     setGenerating(false)
   }
 
-  const openAnalysis = (signal) => {
+  const openAnalysis = (signal: any) => {
     setSelectedSignal(signal)
     setShowAnalysis(true)
   }
