@@ -440,7 +440,7 @@ export default function Dashboard() {
             <div style={{ padding: '24px', borderBottom: '1px solid #1c1c2e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '20px' }}>📊 Signal Analysis</h2>
-                <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>{selectedSignal.pair} • {selectedSignal.direction}</p>
+                <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>{selectedSignal?.pair} • {selectedSignal?.direction}</p>
               </div>
               <button 
                 onClick={closeAnalysis}
@@ -460,37 +460,37 @@ export default function Dashboard() {
               {/* Wyckoff Analysis */}
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>📈 Wyckoff Analysis</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal.analysis.wyckoff}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.wyckoff}</p>
               </div>
 
               {/* SMC Analysis */}
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🎯 Smart Money Concepts</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal.analysis.smc}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.smc}</p>
               </div>
 
               {/* Kill Zone */}
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⏰ Kill Zone Timing</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal.analysis.killZone}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.killZone}</p>
               </div>
 
               {/* Entry Logic */}
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🚪 Entry Logic</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal.analysis.entry}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.entry}</p>
               </div>
 
               {/* Risk Management */}
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⚠️ Risk Management</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal.analysis.risk}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.risk}</p>
               </div>
 
               {/* Reward */}
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>💰 Reward Targets</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal.analysis.reward}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.reward}</p>
               </div>
 
               <div style={{ 
@@ -500,7 +500,7 @@ export default function Dashboard() {
                 border: '1px solid rgba(0, 212, 255, 0.3)'
               }}>
                 <p style={{ margin: 0, fontSize: '14px', color: '#00d4ff' }}>
-                  ✨ AI Confidence: <strong>{selectedSignal.confidence}%</strong>
+                  ✨ AI Confidence: <strong>{selectedSignal?.confidence}%</strong>
                 </p>
               </div>
             </div>
