@@ -194,51 +194,87 @@ const SIGNALS_DATA = [
   }
 ]
 
+const API_URL = 'https://cryptotraderai-api.onrender.com'
+
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false)
   const [lang, setLang] = useState('ru')
-  const [signals, setSignals] = useState(SIGNALS_DATA)
+  const [signals, setSignals] = useState([])
   const [generating, setGenerating] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [selectedSignal, setSelectedSignal] = useState(null)
   const [showAnalysis, setShowAnalysis] = useState(false)
+  const [stats, setStats] = useState({ total: 0, winRate: 0, wins: 0, losses: 0 })
 
   const t = translations[lang]
 
   useEffect(() => {
     setMounted(true)
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
+    fetchSignals()
     return () => clearInterval(timer)
   }, [])
 
+  const fetchSignals = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/signals/active`)
+      if (res.ok) {
+        const data = await res.json()
+        setSignals(data.signals || [])
+        setStats({
+          total: data.total || 0,
+          winRate: data.win_rate || 0,
+          wins: data.wins || 0,
+          losses: data.losses || 0
+        })
+      }
+    } catch (e) {
+      console.log('API error, using demo:', e)
+      setSignals(SIGNALS_DATA)
+      setStats({ total: 42, winRate: 36, wins: 13, losses: 23 })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const generateSignal = async () => {
     setGenerating(true)
-    await new Promise(r => setTimeout(r, 1500))
-    const demoSignal = {
-      id: Date.now().toString(),
-      pair: 'BTC/USDT',
-      direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
-      confidence: Math.floor(Math.random() * 20) + 70,
-      entry: 63500,
-      stopLoss: 62800,
-      takeProfit1: 64500,
-      takeProfit2: 65500,
-      wyckoffPhase: 'accumulation',
-      killZone: 'New York',
-      timeframe: '4H',
-      exchange: 'Binance',
-      status: 'ACTIVE',
-      analysis: {
-        wyckoff: 'Accumulation phase with volume confirmation.',
-        smc: 'Liquidity sweep completed.',
-        killZone: 'New York session optimal.',
-        entry: 'Entry after BOS.',
-        risk: 'Stop below recent low.',
-        reward: 'Multiple TP levels.'
+    try {
+      const res = await fetch(`${API_URL}/api/signals/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pair: 'BTC/USDT', timeframe: '4H', exchange: 'binance' })
+      })
+      if (res.ok) {
+        const newSignal = await res.json()
+        setSignals([newSignal, ...signals])
+      } else {
+        // Fallback demo generation
+        await new Promise(r => setTimeout(r, 1500))
+        const demoSignal = {
+          id: Date.now().toString(),
+          pair: 'BTC/USDT',
+          direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
+          confidence: Math.floor(Math.random() * 20) + 70,
+          entry: 63500,
+          stop_loss: 62800,
+          take_profit_1: 64500,
+          take_profit_2: 65500,
+          wyckoff_phase: 'accumulation',
+          kill_zone: 'New York',
+          timeframe: '4H',
+          exchange: 'Binance',
+          status: 'ACTIVE',
+          analysis: 'AI generated signal'
+        }
+        setSignals([demoSignal, ...signals])
       }
+    } catch (e) {
+      console.log('Generate error:', e)
+    } finally {
+      setGenerating(false)
     }
-    setSignals([demoSignal, ...signals])
-    setGenerating(false)
   }
 
   const openAnalysis = (signal) => {
@@ -337,7 +373,7 @@ export default function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
           <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
             <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>{t.totalSignals}</p>
-            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0 }}>{DEMO_STATS.totalSignals}</p>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0 }}>{stats.total}</p>
             <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{t.allTimeGenerated}</p>
           </div>
           <div style={{ background: 'rgba(0, 212, 255, 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0, 212, 255, 0.3)' }}>
@@ -347,12 +383,12 @@ export default function Dashboard() {
           </div>
           <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
             <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>{t.winRate}</p>
-            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#ffb300' }}>{DEMO_STATS.winRate}%</p>
-            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{DEMO_STATS.hitTP} {t.winsLosses.split(' / ')[0]} / {DEMO_STATS.hitSL} {t.winsLosses.split(' / ')[1]}</p>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#ffb300' }}>{stats.winRate}%</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{stats.wins} {t.winsLosses.split(' / ')[0]} / {stats.losses} {t.winsLosses.split(' / ')[1]}</p>
           </div>
           <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
             <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px' }}>{t.hitTP}</p>
-            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#00c853' }}>{DEMO_STATS.hitTP}</p>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#00c853' }}>{stats.wins}</p>
             <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{t.takeProfitReached}</p>
           </div>
         </div>
@@ -364,7 +400,12 @@ export default function Dashboard() {
               <span style={{ color: '#6b7280', fontSize: '14px' }}>{signals.length} {t.signals}</span>
             </div>
             
-            {signals.map((signal) => (
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>⏳ {t.loading}...</div>
+            ) : signals.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>{lang === 'ru' ? 'Нет активных сигналов' : 'No active signals'}</div>
+            ) : (
+              signals.map((signal) => (
               <div key={signal.id} style={{ background: '#13131f', borderRadius: '12px', padding: '16px', marginBottom: '16px', border: '1px solid #1c1c2e' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -392,14 +433,14 @@ export default function Dashboard() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>{t.entry}</p><p style={{ fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.entry.toLocaleString()}</p></div>
-                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>{t.stopLoss}</p><p style={{ color: '#ff5252', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.stopLoss.toLocaleString()}</p></div>
-                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>TP1</p><p style={{ color: '#00c853', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.takeProfit1.toLocaleString()}</p></div>
-                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>TP2</p><p style={{ color: '#00c853', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${signal.takeProfit2.toLocaleString()}</p></div>
+                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>{t.entry}</p><p style={{ fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${(signal.entry || 0).toLocaleString()}</p></div>
+                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>{t.stopLoss}</p><p style={{ color: '#ff5252', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${(signal.stop_loss || signal.stopLoss || 0).toLocaleString()}</p></div>
+                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>TP1</p><p style={{ color: '#00c853', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${(signal.take_profit_1 || signal.takeProfit1 || 0).toLocaleString()}</p></div>
+                  <div><p style={{ color: '#6b7280', fontSize: '11px', margin: 0 }}>TP2</p><p style={{ color: '#00c853', fontFamily: 'monospace', fontSize: '14px', margin: '4px 0 0' }}>${(signal.take_profit_2 || signal.takeProfit2 || 0).toLocaleString()}</p></div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', paddingTop: '12px', borderTop: '1px solid #1c1c2e', alignItems: 'center' }}>
-                  <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoffPhase}</strong> | KZ: <strong style={{ color: '#fff' }}>{getKillZoneName(signal.killZone)}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stopLoss, signal.takeProfit1)}</strong></span>
+                  <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoff_phase || signal.wyckoffPhase || 'unknown'}</strong> | KZ: <strong style={{ color: '#fff' }}>{getKillZoneName(signal.kill_zone || signal.killZone)}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stop_loss || signal.stopLoss, signal.take_profit_1 || signal.takeProfit1)}</strong></span>
                   <button 
                     onClick={() => openAnalysis(signal)}
                     style={{
@@ -416,7 +457,8 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
 
           <div>
@@ -424,16 +466,16 @@ export default function Dashboard() {
               <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>📊 {t.statistics}</h3>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <span style={{ color: '#6b7280', fontSize: '13px' }}>{t.winRate}</span>
-                <span style={{ color: '#00c853', fontWeight: 'bold' }}>{DEMO_STATS.winRate}%</span>
+                <span style={{ color: '#00c853', fontWeight: 'bold' }}>{stats.winRate}%</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div style={{ background: '#1c1c2e', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
                   <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{t.wins}</p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#00c853' }}>{DEMO_STATS.hitTP}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#00c853' }}>{stats.wins}</p>
                 </div>
                 <div style={{ background: '#1c1c2e', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
                   <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{t.losses}</p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#ff5252' }}>{DEMO_STATS.hitSL}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#ff5252' }}>{stats.losses}</p>
                 </div>
               </div>
             </div>
