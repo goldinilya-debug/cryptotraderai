@@ -436,57 +436,22 @@ export default function Dashboard() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', paddingTop: '12px', borderTop: '1px solid #1c1c2e', alignItems: 'center' }}>
-                  <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoffPhase}</strong> | KZ: <strong style={{ color: '#fff' }}>{getKillZoneName(signal.killZone)}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stopLoss, signal.takeProfit1)}</strong></span>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                      onClick={() => openAnalysis(signal)}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid #00d4ff',
-                        color: '#00d4ff',
-                        padding: '4px 12px',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      📊 {t.analysis}
-                    </button>
-                    {signal.status === 'ACTIVE' ? (
-                      <>
-                        <button 
-                          onClick={() => submitFeedback(signal.id, 'WIN')}
-                          style={{
-                            background: 'rgba(0, 200, 83, 0.2)',
-                            border: '1px solid #00c853',
-                            color: '#00c853',
-                            padding: '4px 12px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          ✅ {t.win}
-                        </button>
-                        <button 
-                          onClick={() => submitFeedback(signal.id, 'LOSS')}
-                          style={{
-                            background: 'rgba(255, 82, 82, 0.2)',
-                            border: '1px solid #ff5252',
-                            color: '#ff5252',
-                            padding: '4px 12px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          ❌ {t.loss}
-                        </button>
-                      </>
-                    ) : (
-                      <span style={{ 
-                        padding: '4px 12px', 
-                        borderRadius: '6px',
+                  <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoffPhase}</strong> | KZ: <strong style={{ color: '#fff' }}>{getKillZoneName(signal.killZone)}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stopLoss, signal.takeProfit1)}</strong> | <strong style={{ color: signal.status === 'WIN' ? '#00c853' : signal.status === 'LOSS' ? '#ff5252' : '#ffb300' }}>{signal.status === 'ACTIVE' ? (lang === 'ru' ? 'АКТИВЕН' : 'ACTIVE') : signal.status}</strong></span>
+                  <button 
+                    onClick={() => openAnalysis(signal)}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid #00d4ff',
+                      color: '#00d4ff',
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📊 {t.analysis}
+                  </button>
+                </div>
                         fontSize: '11px',
                         background: signal.status === 'WIN' ? 'rgba(0, 200, 83, 0.2)' : 'rgba(255, 82, 82, 0.2)',
                         color: signal.status === 'WIN' ? '#00c853' : '#ff5252'
@@ -496,12 +461,30 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
-              </div>
             ))}
           </div>
 
           {/* Sidebar */}
           <div>
+            {/* Statistics -->
+            <div style={{ background: "#13131f", borderRadius: "12px", padding: "16px", marginBottom: "16px", border: "1px solid #1c1c2e" }}>
+              <h3 style={{ margin: "0 0 16px 0", fontSize: "16px" }}>📊 {lang === 'ru' ? 'Статистика' : 'Statistics'}</h3>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+                <span style={{ color: "#6b7280", fontSize: "13px" }}>{lang === 'ru' ? 'Win Rate' : 'Win Rate'}</span>
+                <span style={{ color: "#00c853", fontWeight: "bold" }}>{DEMO_STATS.winRate}%</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div style={{ background: "#1c1c2e", padding: "10px", borderRadius: "8px", textAlign: "center" }}>
+                  <p style={{ margin: 0, fontSize: "11px", color: "#6b7280" }}>{lang === 'ru' ? 'Побед' : 'Wins'}</p>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "18px", fontWeight: "bold", color: "#00c853" }}>{DEMO_STATS.hitTP}</p>
+                </div>
+                <div style={{ background: "#1c1c2e", padding: "10px", borderRadius: "8px", textAlign: "center" }}>
+                  <p style={{ margin: 0, fontSize: "11px", color: "#6b7280" }}>{lang === 'ru' ? 'Поражений' : 'Losses'}</p>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "18px", fontWeight: "bold", color: "#ff5252" }}>{DEMO_STATS.hitSL}</p>
+                </div>
+              </div>
+            </div>
+
             {/* Kill Zones */}
             <div style={{ background: '#13131f', borderRadius: '12px', padding: '16px', marginBottom: '16px', border: '1px solid #1c1c2e' }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
