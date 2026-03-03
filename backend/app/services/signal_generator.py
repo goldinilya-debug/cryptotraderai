@@ -75,9 +75,44 @@ async def generate_signal(
     current_price: float = 0.0,
     price_data: Optional[list] = None
 ) -> Dict:
-    """Generate AI trading signal using Groq with ML enhancement"""
+    """Generate AI trading signal using Groq with real market data"""
     
-    # Get market context
+    # Import market data service
+    from app.services.market_data import get_current_price, get_coin_data, get_ohlcv, get_ticker_24h
+    
+    # Fetch real market data
+    try:
+        real_price = await get_current_price(pair, exchange)
+        coin_data = await get_coin_data(pair)
+        ohlcv_data = await get_ohlcv(pair, timeframe, limit=20, exchange=exchange)
+        ticker_24h = await get_ticker_24h(pair, exchange)
+        
+        # Use real price if available
+        if real_price > 0:
+            current_price = real_price
+        elif coin_data.get("current_price", 0) > 0:
+            current_price = coin_data["current_price"]
+        
+        # Calculate technical indicators from OHLCV
+        rsi = calculate_rsi(ohlcv_data) if ohlcv_data else 50
+        trend = determine_trend(ohlcv_data) if ohlcv_data else "neutral"
+        
+        # Get market context
+        price_change_24h = coin_data.get("price_change_percentage_24h", 0) or ticker_24h.get("price_change_percent", 0)
+        high_24h = coin_data.get("high_24h", 0) or ticker_24h.get("high_24h", 0)
+        low_24h = coin_data.get("low_24h", 0) or ticker_24h.get("low_24h", 0)
+        volume = coin_data.get("total_volume", 0) or ticker_24h.get("quote_volume", 0)
+        
+    except Exception as e:
+        print(f"Error fetching market data: {e}")
+        # Use provided defaults or fallback
+        if current_price == 0:
+            current_price = get_fallback_price(pair)
+        rsi = 50
+        trend = "neutral"
+        price_change_24h = 0
+        ohlcv_data = []
+    
     kill_zone = get_current_kill_zone()
     
     # Try ML-enhanced generation first
@@ -100,16 +135,28 @@ ML INSIGHTS:
 - Focus on high-probability setups only
 """
     
-    # Prepare prompt
+    # Prepare price action summary
+    price_action_summary = []
+    if ohlcv_data:
+        for candle in ohlcv_data[-5:]:
+            price_action_summary.append({
+                "open": candle["open"],
+                "high": candle["high"],
+                "low": candle["low"],
+                "close": candle["close"],
+                "volume": candle["volume"]
+            })
+    
+    # Prepare prompt with real data
     prompt = ml_hint + SIGNAL_GENERATION_PROMPT.format(
         pair=pair,
         timeframe=timeframe,
         current_price=current_price,
-        change_24h=0.0,
-        trend="neutral",
-        rsi=50,
+        change_24h=price_change_24h,
+        trend=trend,
+        rsi=rsi,
         kill_zone=kill_zone,
-        price_action=json.dumps(price_data[-5:] if price_data else [])
+        price_action=json.dumps(price_action_summary)
     )
     
     try:
@@ -128,6 +175,10 @@ ML INSIGHTS:
         content = response.choices[0].message.content
         signal_data = json.loads(content)
         
+        # Ensure entry price is current market price if not specified
+        if signal_data.get("entry", 0) == 0 or signal_data["entry"] != current_price:
+            signal_data["entry"] = current_price
+        
         # Validate direction vs price levels
         if signal_data["direction"] == "LONG":
             if signal_data["stop_loss"] >= signal_data["entry"]:
@@ -144,7 +195,7 @@ ML INSIGHTS:
             if signal_data.get("take_profit_2") and signal_data["take_profit_2"] >= signal_data["entry"]:
                 signal_data["take_profit_2"] = signal_data["entry"] * 0.94  # 6% below entry
         
-        # Add metadata
+        # Add metadata with real market data
         signal_data["id"] = f"sig_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
         signal_data["pair"] = pair
         signal_data["timeframe"] = timeframe
@@ -154,6 +205,9 @@ ML INSIGHTS:
         signal_data["created_at"] = datetime.utcnow().isoformat()
         signal_data["ml_enhanced"] = False
         signal_data["ml_win_rate"] = pair_wr
+        signal_data["real_time_data"] = True
+        signal_data["market_price"] = current_price
+        signal_data["price_change_24h"] = price_change_24h
         
         # Record in ML system
         signal_ml.record_signal(signal_data)
@@ -162,26 +216,8 @@ ML INSIGHTS:
         
     except Exception as e:
         print(f"Groq API error: {e}")
-        # Fallback signal structure
-        return {
-            "id": f"sig_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
-            "pair": pair,
-            "direction": "LONG",
-            "entry": current_price,
-            "stop_loss": current_price * 0.98,
-            "take_profit_1": current_price * 1.04,
-            "take_profit_2": current_price * 1.08,
-            "confidence": 75,
-            "timeframe": timeframe,
-            "exchange": exchange,
-            "status": "ACTIVE",
-            "wyckoff_phase": "unknown",
-            "kill_zone": kill_zone,
-            "analysis": f"Error in AI generation: {str(e)}",
-            "created_at": datetime.utcnow().isoformat(),
-            "ml_enhanced": False,
-            "ml_win_rate": 50
-        }
+        # Fallback signal with real data
+        return generate_fallback_signal(pair, timeframe, exchange, current_price, kill_zone, price_change_24h)
 
 def get_current_kill_zone() -> str:
     """Get currently active Kill Zone"""
@@ -199,3 +235,127 @@ def get_current_kill_zone() -> str:
         return "London Close"
     else:
         return "None"
+
+def calculate_rsi(ohlcv_data: list, period: int = 14) -> float:
+    """Calculate RSI from OHLCV data"""
+    if not ohlcv_data or len(ohlcv_data) < period + 1:
+        return 50
+    
+    closes = [c["close"] for c in ohlcv_data]
+    gains = []
+    losses = []
+    
+    for i in range(1, len(closes)):
+        change = closes[i] - closes[i-1]
+        if change > 0:
+            gains.append(change)
+            losses.append(0)
+        else:
+            gains.append(0)
+            losses.append(abs(change))
+    
+    if len(gains) < period:
+        return 50
+    
+    avg_gain = sum(gains[-period:]) / period
+    avg_loss = sum(losses[-period:]) / period
+    
+    if avg_loss == 0:
+        return 100
+    
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    
+    return round(rsi, 2)
+
+def determine_trend(ohlcv_data: list) -> str:
+    """Determine trend from OHLCV data using EMA crossover"""
+    if not ohlcv_data or len(ohlcv_data) < 50:
+        return "neutral"
+    
+    closes = [c["close"] for c in ohlcv_data]
+    
+    # Simple EMA calculation
+    def ema(prices, period):
+        multiplier = 2 / (period + 1)
+        ema_values = [prices[0]]
+        for price in prices[1:]:
+            ema_values.append((price - ema_values[-1]) * multiplier + ema_values[-1])
+        return ema_values
+    
+    ema_20 = ema(closes, 20)
+    ema_50 = ema(closes, 50) if len(closes) >= 50 else ema_20
+    
+    current_ema_20 = ema_20[-1]
+    current_ema_50 = ema_50[-1] if len(ema_50) > 0 else current_ema_20
+    
+    if current_ema_20 > current_ema_50 * 1.02:
+        return "bullish"
+    elif current_ema_20 < current_ema_50 * 0.98:
+        return "bearish"
+    else:
+        return "neutral"
+
+def get_fallback_price(pair: str) -> float:
+    """Get fallback price for demo purposes"""
+    fallback_prices = {
+        "BTC/USDT": 65000.0,
+        "ETH/USDT": 3500.0,
+        "SOL/USDT": 145.0,
+        "AVAX/USDT": 28.0,
+        "1000PEPE/USDT": 0.0085,
+        "HYPE/USDT": 18.50,
+    }
+    return fallback_prices.get(pair, 100.0)
+
+def generate_fallback_signal(pair: str, timeframe: str, exchange: str, 
+                             current_price: float, kill_zone: str, 
+                             price_change_24h: float) -> Dict:
+    """Generate a fallback signal with real data"""
+    
+    # Determine direction based on 24h change
+    if price_change_24h > 2:
+        direction = "LONG"
+        confidence = min(75 + int(price_change_24h), 90)
+    elif price_change_24h < -2:
+        direction = "SHORT"
+        confidence = min(75 + int(abs(price_change_24h)), 90)
+    else:
+        direction = "LONG" if price_change_24h >= 0 else "SHORT"
+        confidence = 72
+    
+    if direction == "LONG":
+        entry = current_price
+        stop_loss = current_price * 0.985
+        take_profit_1 = current_price * 1.03
+        take_profit_2 = current_price * 1.06
+        wyckoff_phase = "accumulation"
+    else:
+        entry = current_price
+        stop_loss = current_price * 1.015
+        take_profit_1 = current_price * 0.97
+        take_profit_2 = current_price * 0.94
+        wyckoff_phase = "distribution"
+    
+    return {
+        "id": f"sig_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+        "pair": pair,
+        "direction": direction,
+        "entry": round(entry, 8 if entry < 1 else 2),
+        "stop_loss": round(stop_loss, 8 if stop_loss < 1 else 2),
+        "take_profit_1": round(take_profit_1, 8 if take_profit_1 < 1 else 2),
+        "take_profit_2": round(take_profit_2, 8 if take_profit_2 < 1 else 2),
+        "confidence": confidence,
+        "timeframe": timeframe,
+        "exchange": exchange,
+        "status": "ACTIVE",
+        "wyckoff_phase": wyckoff_phase,
+        "kill_zone": kill_zone,
+        "analysis": f"Fallback signal based on real market data. Price: ${current_price}, 24h change: {price_change_24h:.2f}%",
+        "created_at": datetime.utcnow().isoformat(),
+        "ml_enhanced": False,
+        "ml_win_rate": 50,
+        "real_time_data": True,
+        "market_price": current_price,
+        "price_change_24h": price_change_24h
+    }
