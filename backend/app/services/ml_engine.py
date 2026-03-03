@@ -20,6 +20,17 @@ class SignalML:
         self.killzone_performance = defaultdict(lambda: {'wins': 0, 'losses': 0})
         self.confidence_accuracy = {}
         
+        # ML Settings
+        self.min_confidence_threshold = 70
+        self.min_risk_reward = 1.5
+        self.max_daily_signals = 10
+        self.auto_adjust = True
+        self.learning_rate = 0.1
+        self.learning_enabled = True
+        self.weight_recent = 0.7
+        self.volatility_adjust = True
+        self.trend_filter = True
+        
     def record_signal(self, signal: Dict) -> str:
         """Record new signal for tracking"""
         signal_id = f"sig_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{signal['pair'].replace('/', '')}"

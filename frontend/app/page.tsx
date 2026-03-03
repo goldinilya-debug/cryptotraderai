@@ -264,11 +264,28 @@ export default function Dashboard() {
               <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>AI-powered trading signals</p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b7280', fontSize: '14px' }}>
-            <div style={{ width: '8px', height: '8px', background: '#00c853', borderRadius: '50%', animation: 'pulse 2s infinite' }}></div>
-            <span>Live</span>
-            <span>•</span>
-            <span>{currentTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b7280', fontSize: '14px' }}>
+              <div style={{ width: '8px', height: '8px', background: '#00c853', borderRadius: '50%', animation: 'pulse 2s infinite' }}></div>
+              <span>Live</span>
+              <span>•</span>
+              <span>{currentTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>
+            <a 
+              href="/settings"
+              style={{
+                background: 'transparent',
+                border: '1px solid #6b7280',
+                color: '#6b7280',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                textDecoration: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              ⚙️ ML Настройки
+            </a>
           </div>
         </div>
       </header>
