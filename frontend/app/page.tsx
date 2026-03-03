@@ -392,6 +392,24 @@ export default function Dashboard() {
               {lang === 'ru' ? '🇷🇺 RU' : '🇬🇧 EN'}
             </button>
             <a 
+              href="/sniper"
+              style={{
+                background: 'linear-gradient(135deg, #ff4757, #ff6348)',
+                border: 'none',
+                color: '#fff',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                textDecoration: 'none',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              🎯 {lang === 'ru' ? 'Снайпер' : 'Sniper'}
+            </a>
+            <a 
               href="/settings"
               style={{
                 background: 'transparent',
