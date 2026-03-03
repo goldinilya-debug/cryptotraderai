@@ -5,191 +5,287 @@ import {
   TrendingUp, 
   Activity, 
   Target, 
-  Zap,
-  Loader2
+  Zap
 } from 'lucide-react'
-import { format } from 'date-fns'
-import { SignalCard } from '@/components/SignalCard'
 import { MetricCard } from '@/components/MetricCard'
 import { KillZoneStatus } from '@/components/KillZoneStatus'
-import { Signal } from '@/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cryptotraderai-api.onrender.com'
+// Demo данные для начального отображения
+const DEMO_STATS = {
+  totalSignals: 42,
+  activeSignals: 4,
+  winRate: 36,
+  hitTP: 13,
+  hitSL: 23,
+}
 
 export default function Dashboard() {
-  const [signals, setSignals] = useState<Signal[]>([])
-  const [stats, setStats] = useState({
-    totalSignals: 42,
-    activeSignals: 4,
-    winRate: 36,
-    hitTP: 13,
-    hitSL: 23,
-  })
-  const [loading, setLoading] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const [currentTime, setCurrentTime] = useState(new Date())
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000)
-    return () => clearInterval(timer)
   }, [])
 
-  const fetchSignals = async () => {
-    if (typeof window === 'undefined') return
-    setLoading(true)
-    try {
-      const res = await fetch(`${API_URL}/api/signals`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data.signals && data.signals.length > 0) {
-          setSignals(data.signals)
-        }
-      }
-    } catch (e) {
-      console.log('API not available, using demo data')
-    }
-    setLoading(false)
-  }
-
-  const fetchStats = async () => {
-    if (typeof window === 'undefined') return
-    try {
-      const res = await fetch(`${API_URL}/api/performance/stats`)
-      if (res.ok) {
-        const data = await res.json()
-        setStats(data)
-      }
-    } catch (e) {
-      console.log('Stats API not available')
-    }
-  }
-
-  const generateSignal = async () => {
-    if (typeof window === 'undefined') return
-    setGenerating(true)
-    try {
-      const res = await fetch(`${API_URL}/api/signals/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pair: 'BTC/USDT', timeframe: '4H', exchange: 'binance' })
-      })
-      if (res.ok) {
-        await fetchSignals()
-      }
-    } catch (e) {
-      alert('Error generating signal - API not ready')
-    }
-    setGenerating(false)
-  }
-
   if (!mounted) {
-    return <div style={{ background: '#0a0a0f', minHeight: '100vh' }} />
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        background: '#0a0a0f',
+        color: '#fff',
+        padding: '20px'
+      }}>
+        <header style={{ borderBottom: '1px solid #1c1c2e', padding: '20px 0' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              background: 'linear-gradient(135deg, #00d4ff, #00a8cc)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <span style={{ fontSize: '24px' }}>📈</span>
+            </div>
+            <div>
+              <h1 style={{ margin: 0, fontSize: '20px' }}>CryptoTraderAI</h1>
+              <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>AI-powered trading signals</p>
+            </div>
+          </div>
+        </header>
+
+        <main style={{ maxWidth: '1200px', margin: '24px auto', padding: '0 20px' }}>
+          <p>Loading...</p>
+        </main>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-surface-light">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-background" />
+    <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#fff' }}>
+      <header style={{ borderBottom: '1px solid #1c1c2e', padding: '16px 0' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              background: 'linear-gradient(135deg, #00d4ff, #00a8cc)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <span style={{ fontSize: '20px' }}>📈</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold">CryptoTraderAI</h1>
-              <p className="text-sm text-muted">AI-powered trading signals</p>
+              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>CryptoTraderAI</h1>
+              <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>AI-powered trading signals</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-muted">Live</span>
-            <span className="text-muted">•</span>
-            <span className="text-muted">{format(currentTime, 'HH:mm')}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b7280', fontSize: '14px' }}>
+            <div style={{ width: '8px', height: '8px', background: '#00c853', borderRadius: '50%' }}></div>
+            <span>Live</span>
+            <span>•</span>
+            <span>{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <MetricCard
-            title="Total Signals"
-            value={stats.totalSignals}
-            subtitle="All time generated"
-            icon={Activity}
-          />
-          <MetricCard
-            title="Active Signals"
-            value={stats.activeSignals}
-            subtitle="Currently open"
-            icon={Zap}
-            highlight
-          />
-          <MetricCard
-            title="Win Rate"
-            value={`${stats.winRate}%`}
-            subtitle={`${stats.hitTP} wins / ${stats.hitSL} losses`}
-            icon={Target}
-            valueColor={stats.winRate > 50 ? 'text-success' : 'text-warning'}
-          />
-          <MetricCard
-            title="Hit TP"
-            value={stats.hitTP}
-            subtitle="Take profit reached"
-            icon={TrendingUp}
-            valueColor="text-success"
-          />
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Active Signals */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Active Signals</h2>
-              <button 
-                onClick={fetchSignals}
-                className="text-sm text-primary hover:underline"
-              >
-                Refresh
-              </button>
-            </div>
-            
-            {loading ? (
-              <div className="text-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-                <p className="text-muted mt-2">Loading signals...</p>
-              </div>
-            ) : signals.length > 0 ? (
-              signals.map((signal) => (
-                <SignalCard key={signal.id} signal={signal} />
-              ))
-            ) : (
-              <div className="bg-surface rounded-xl p-8 text-center border border-surface-light">
-                <p className="text-muted">No active signals from API</p>
-                <p className="text-sm text-muted mt-1">Click Generate to create a signal</p>
-              </div>
-            )}
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+        <!-- Stats Grid -->
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '16px',
+          marginBottom: '32px'
+        }}>
+          <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px 0' }}>Total Signals</p>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0 }}>{DEMO_STATS.totalSignals}</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0 0' }}>All time generated</p>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+          <div style={{ background: 'rgba(0, 212, 255, 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0, 212, 255, 0.3)' }}>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px 0' }}>Active Signals</p>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#00d4ff' }}>{DEMO_STATS.activeSignals}</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0 0' }}>Currently open</p>
+          </div>
+
+          <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px 0' }}>Win Rate</p>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#ffb300' }}>{DEMO_STATS.winRate}%</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0 0' }}>{DEMO_STATS.hitTP} wins / {DEMO_STATS.hitSL} losses</p>
+          </div>
+
+          <div style={{ background: '#13131f', padding: '16px', borderRadius: '12px', border: '1px solid #1c1c2e' }}>
+            <p style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 8px 0' }}>Hit TP</p>
+            <p style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#00c853' }}>{DEMO_STATS.hitTP}</p>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0 0' }}>Take profit reached</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+          <!-- Active Signals -->
+          <div style={{ gridColumn: 'span 2' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>Active Signals</h2>
+            </div>
+
+            <!-- Signal Card -->
+            <div style={{ background: '#13131f', borderRadius: '12px', border: '1px solid #1c1c2e', padding: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#1c1c2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span>₿</span>
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '16px' }}>BTC/USDT</h3>
+                    <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '12px' }}>4h • binance</p>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ 
+                    background: 'rgba(0, 200, 83, 0.1)', 
+                    color: '#00c853', 
+                    padding: '4px 12px', 
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    LONG
+                  </div>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 'bold' }}>82%</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <p style={{ color: '#6b7280', fontSize: '11px', margin: '0 0 4px 0' }}>Entry</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '14px', margin: 0 }}>$63,500</p>
+                </div>
+                <div>
+                  <p style={{ color: '#6b7280', fontSize: '11px', margin: '0 0 4px 0' }}>Stop Loss</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '14px', margin: 0, color: '#ff5252' }}>$62,800</p>
+                </div>
+                <div>
+                  <p style={{ color: '#6b7280', fontSize: '11px', margin: '0 0 4px 0' }}>TP1</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '14px', margin: 0, color: '#00c853' }}>$64,500</p>
+                </div>
+                <div>
+                  <p style={{ color: '#6b7280', fontSize: '11px', margin: '0 0 4px 0' }}>TP2</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '14px', margin: 0, color: '#00c853' }}>$65,500</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid #1c1c2e' }}>
+                <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#6b7280' }}>
+                  <span>Wyckoff: <strong style={{ color: '#fff' }}>accumulation</strong></span>
+                  <span>KZ: <strong style={{ color: '#fff' }}>london</strong></span>
+                  <span>R:R <strong style={{ color: '#fff' }}>1:1.4</strong></span>
+                </div>
+                <span style={{ 
+                  fontSize: '11px', 
+                  padding: '4px 8px', 
+                  background: 'rgba(0, 212, 255, 0.1)', 
+                  color: '#00d4ff',
+                  borderRadius: '4px'
+                }}>
+                  ACTIVE
+                </span>
+              </div>
+            </div>
+
+            <!-- ETH Signal -->
+            <div style={{ background: '#13131f', borderRadius: '12px', border: '1px solid #1c1c2e', padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#1c1c2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span>Ξ</span>
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '16px' }}>ETH/USDT</h3>
+                    <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '12px' }}>4h • bingx</p>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ 
+                    background: 'rgba(255, 82, 82, 0.1)', 
+                    color: '#ff5252', 
+                    padding: '4px 12px', 
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    SHORT
+                  </div>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 'bold' }}>75%</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <p style={{ color: '#6b7280', fontSize: '11px', margin: '0 0 4px 0' }}>Entry</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '14px', margin: 0 }}>$2,031.69</p>
+                </div>
+                <div>
+                  <p style={{ color: '#6b7280', fontSize: '11px', margin: '0 0 4px 0' }}>Stop Loss</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '14px', margin: 0, color: '#ff5252' }}>$2,054.05</p>
+                </div>
+                <div>
+                  <p style={{ color: '#6b7280', fontSize: '11px', margin: '0 0 4px 0' }}>TP1</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '14px', margin: 0, color: '#00c853' }}>$1,961.62</p>
+                </div>
+                <div>
+                  <p style={{ color: '#6b7280', fontSize: '11px', margin: '0 0 4px 0' }}>TP2</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '14px', margin: 0, color: '#00c853' }}>$1,928.54</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid #1c1c2e' }}>
+                <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#6b7280' }}>
+                  <span>Wyckoff: <strong style={{ color: '#fff' }}>markup</strong></span>
+                  <span>KZ: <strong style={{ color: '#fff' }}>new york</strong></span>
+                  <span>R:R <strong style={{ color: '#fff' }}>1:3.1</strong></span>
+                </div>
+                <span style={{ 
+                  fontSize: '11px', 
+                  padding: '4px 8px', 
+                  background: 'rgba(0, 212, 255, 0.1)', 
+                  color: '#00d4ff',
+                  borderRadius: '4px'
+                }}>
+                  ACTIVE
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div>
             <KillZoneStatus />
-            
-            {/* Quick Actions */}
-            <div className="bg-surface rounded-xl p-4 border border-surface-light">
-              <h3 className="font-semibold mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-                <button 
-                  onClick={generateSignal}
-                  disabled={generating}
-                  className="w-full py-2 px-4 bg-primary text-background rounded-lg font-medium hover:bg-primary-dark transition disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {generating && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {generating ? 'Generating...' : 'Generate Signal'}
+
+            <div style={{ background: '#13131f', borderRadius: '12px', border: '1px solid #1c1c2e', padding: '16px' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>Quick Actions</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button style={{ 
+                  padding: '12px', 
+                  background: '#00d4ff', 
+                  color: '#0a0a0f', 
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}>
+                  Generate Signal
                 </button>
-                <button className="w-full py-2 px-4 bg-surface-light rounded-lg font-medium hover:bg-surface-light/80 transition">
+                <button style={{ 
+                  padding: '12px', 
+                  background: '#1c1c2e', 
+                  color: '#fff', 
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}>
                   View Analysis
                 </button>
               </div>
