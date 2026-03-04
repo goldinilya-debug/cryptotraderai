@@ -1,0 +1,41 @@
+# Trading Bot Configuration
+# Этот файл настраивает интеграцию AI с торговым ботом
+
+webhook:
+  # URL твоего бота (обнови после деплоя)
+  url: "https://your-bot-name.up.railway.app/webhook/signal"
+  
+  # Секрет для верификации (должен совпадать с WEBHOOK_SECRET в боте)
+  secret: "your_webhook_secret_here"
+  
+  # Режим по умолчанию
+  default_mode: "dry_run"  # "dry_run" или "live"
+
+# Настройки торговли
+trading:
+  # Биржа по умолчанию
+  default_exchange: "binance"
+  
+  # Риск по умолчанию (% от баланса)
+  default_risk_percent: 2.0
+  
+  # Минимальная уверенность для сигнала (0-100)
+  min_confidence: 70
+  
+  # Пары для торговли
+  allowed_pairs:
+    - "BTC/USDT"
+    - "ETH/USDT"
+    - "SOL/USDT"
+    - "BNB/USDT"
+
+# Уведомления (опционально)
+notifications:
+  # Telegram для уведомлений о сделках
+  telegram_bot_token: ""
+  telegram_chat_id: ""
+  
+  # Отправлять уведомления
+  on_trade_open: true
+  on_trade_close: true
+  on_error: true
