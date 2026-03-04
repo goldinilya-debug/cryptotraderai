@@ -92,11 +92,11 @@ const translations = {
 }
 
 const DEMO_STATS = {
-  totalSignals: 42,
-  activeSignals: 4,
-  winRate: 36,
-  hitTP: 13,
-  hitSL: 23,
+  totalSignals: 156,
+  activeSignals: 3,
+  winRate: 68,
+  hitTP: 106,
+  hitSL: 50,
 }
 
 const SIGNALS_DATA = [
@@ -104,90 +104,72 @@ const SIGNALS_DATA = [
     id: '1',
     pair: 'BTC/USDT',
     direction: 'LONG',
-    confidence: 82,
-    entry: 63500,
-    stop_loss: 62800,
-    take_profit_1: 64500,
-    take_profit_2: 65500,
-    wyckoff_phase: 'accumulation',
-    kill_zone: 'London',
+    confidence: 78,
+    entry: 88450,
+    stop_loss: 86500,
+    take_profit_1: 92000,
+    take_profit_2: 96500,
+    wyckoff_phase: 'markup',
+    kill_zone: 'New York',
     timeframe: '4H',
     exchange: 'Binance',
     status: 'ACTIVE',
-    analysis: 'Price in accumulation. Spring test completed. Long at $63,500 after BOS.'
+    analysis: {
+      wyckoff: 'Price in markup phase after successful accumulation. Breaking above key resistance with volume.',
+      smc: 'Bullish order block at $87,200. Fair Value Gap above $90K likely to be filled.',
+      killZone: 'New York session showing strong buying pressure by smart money.',
+      entry: 'Long at $88,450 after reclaim of $87K support turned resistance.',
+      risk: 'Stop below recent swing low at $86,500. Risk: 2.2% of account.',
+      reward: 'TP1 at $92K (1:2.1 R:R). TP2 at $96.5K (1:3.9 R:R).'
+    }
   },
   {
     id: '2',
     pair: 'ETH/USDT',
     direction: 'SHORT',
-    confidence: 75,
-    entry: 3500.00,
-    stop_loss: 3550.00,
-    take_profit_1: 3400.00,
-    take_profit_2: 3300.00,
+    confidence: 74,
+    entry: 2450,
+    stop_loss: 2520,
+    take_profit_1: 2350,
+    take_profit_2: 2280,
     wyckoff_phase: 'distribution',
-    kill_zone: 'New York',
+    kill_zone: 'London',
     timeframe: '4H',
-    exchange: 'BingX',
+    exchange: 'Binance',
     status: 'ACTIVE',
-    analysis: 'Distribution at top. UTAD pattern. Short at $3,500 after rejection.'
+    analysis: {
+      wyckoff: 'Distribution forming at top of markup. Sign of weakness with decreasing volume.',
+      smc: 'Bearish order block at $2,480. Liquidity sweep above $2,500 likely.',
+      killZone: 'London session showing distribution by institutional sellers.',
+      entry: 'Short at $2,450 after rejection from $2,500 resistance.',
+      risk: 'Stop above distribution high at $2,520. Risk: 2.9% of account.',
+      reward: 'TP1 at $2,350 (1:1.4 R:R). TP2 at $2,280 (1:2.4 R:R).'
+    }
   },
   {
     id: '3',
-    pair: '1000PEPE/USDT',
+    pair: 'SOL/USDT',
     direction: 'LONG',
-    confidence: 78,
-    entry: 0.0085,
-    stop_loss: 0.0082,
-    take_profit_1: 0.0092,
-    take_profit_2: 0.0100,
+    confidence: 82,
+    entry: 142.50,
+    stop_loss: 138.00,
+    take_profit_1: 150.00,
+    take_profit_2: 158.00,
     wyckoff_phase: 'accumulation',
     kill_zone: 'Asian',
     timeframe: '4H',
     exchange: 'Binance',
     status: 'ACTIVE',
-    analysis: 'Meme momentum building. Breakout from accumulation zone.'
-  },
-  {
-    id: '4',
-    pair: 'HYPE/USDT',
-    direction: 'SHORT',
-    confidence: 71,
-    entry: 18.50,
-    stop_loss: 19.20,
-    take_profit_1: 17.20,
-    take_profit_2: 16.00,
-    wyckoff_phase: 'distribution',
-    kill_zone: 'London Close',
-    timeframe: '4H',
-    exchange: 'KuCoin',
-    status: 'ACTIVE',
-    analysis: 'Distribution after markup. Sign of weakness with volume.'
+    analysis: {
+      wyckoff: 'Accumulation with shakeout below $138. Volume drying up - classic spring.',
+      smc: 'Bullish order block at $140. Liquidity sweep completed below $138.',
+      killZone: 'Asian session providing quiet accumulation before breakout.',
+      entry: 'Long at $142.50 after reclaim of $140 key level.',
+      risk: 'Stop below shakeout low at $138. Risk: 3.2% of account.',
+      reward: 'TP1 at $150 (1:1.7 R:R). TP2 at $158 (1:3.1 R:R).'
+    }
   }
 ]
-
-const SIGNAL_DETAILS: Record<string, any> = {
-  '2': {
-    analysis: {
-      wyckoff: 'Distribution forming at top of markup. UTAD pattern visible.',
-      smc: 'Fair Value Gap above $2,050 likely to be filled. Bearish order block at $2,040.',
-      killZone: 'New York session showing distribution by smart money.',
-      entry: 'Short at $2,031 after rejection from $2,040 resistance.',
-      risk: 'Stop above distribution high at $2,054. Risk: 1.2% of account.',
-      reward: 'TP1 at $1,961 (1:3.1 R:R). TP2 at $1,928 (1:4.7 R:R).'
-    }
-  },
-  '3': {
-    analysis: {
-      wyckoff: 'Accumulation with shakeout below $138. Volume drying up.',
-      smc: 'Bullish order block at $140. Liquidity sweep completed.',
-      killZone: 'Asian session providing quiet accumulation.',
-      entry: 'Long at $142.50 after reclaim of $140.',
-      risk: 'Stop below shakeout low at $138. Risk: 1.0% of account.',
-      reward: 'TP1 at $150 (1:1.7 R:R). TP2 at $158 (1:3.4 R:R).'
-    }
-  }
-}
 
 // Kill Zone график
 const KILL_ZONE_SCHEDULE = [
