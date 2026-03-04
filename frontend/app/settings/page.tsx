@@ -27,6 +27,8 @@ export default function MLSettings() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [buttonTest, setButtonTest] = useState('')
+  const [newPair, setNewPair] = useState('')
+  const [newPairError, setNewPairError] = useState('')
 
   useEffect(() => {
     setMounted(true)
@@ -114,6 +116,64 @@ export default function MLSettings() {
       setButtonTest('❌ Ошибка сети')
       setTimeout(() => setButtonTest(''), 3000)
     }
+  }
+
+  // Functions to manage pairs
+  const addPair = () => {
+    const pair = newPair.trim().toUpperCase()
+    
+    // Validation
+    if (!pair) {
+      setNewPairError('Введите пару')
+      return
+    }
+    
+    if (!pair.includes('/')) {
+      setNewPairError('Формат: BTC/USDT')
+      return
+    }
+    
+    if (settings.preferred_pairs.includes(pair)) {
+      setNewPairError('Пара уже добавлена')
+      return
+    }
+    
+    setSettings({
+      ...settings,
+      preferred_pairs: [...settings.preferred_pairs, pair]
+    })
+    setNewPair('')
+    setNewPairError('')
+    setMessage('✅ Пара добавлена! Не забудьте сохранить.')
+    setTimeout(() => setMessage(''), 3000)
+  }
+
+  const removePair = (pairToRemove: string) => {
+    setSettings({
+      ...settings,
+      preferred_pairs: settings.preferred_pairs.filter(p => p !== pairToRemove)
+    })
+    setMessage('✅ Пара удалена! Не забудьте сохранить.')
+    setTimeout(() => setMessage(''), 3000)
+  }
+
+  const availablePairs = [
+    'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 
+    'XRP/USDT', 'ADA/USDT', 'DOGE/USDT', 'AVAX/USDT',
+    '1000PEPE/USDT', 'HYPE/USDT', 'DOT/USDT', 'MATIC/USDT'
+  ]
+
+  const quickAddPair = (pair: string) => {
+    if (settings.preferred_pairs.includes(pair)) {
+      setNewPairError('Пара уже добавлена')
+      return
+    }
+    setSettings({
+      ...settings,
+      preferred_pairs: [...settings.preferred_pairs, pair]
+    })
+    setMessage(`✅ ${pair} добавлена!`)
+    setTimeout(() => setMessage(''), 3000)
   }
 
   if (!mounted) {
@@ -314,6 +374,120 @@ export default function MLSettings() {
                 />
                 <span>Избегать плохо-performing пар</span>
               </label>
+            </div>
+
+            {/* Pairs Management */}
+            <div style={{ borderTop: '1px solid #2a2a3e', paddingTop: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', fontWeight: 'bold' }}>
+                📊 Торговые пары ({settings.preferred_pairs.length})
+              </label>
+              
+              {/* Current pairs */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                {settings.preferred_pairs.map((pair) => (
+                  <div
+                    key={pair}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      background: '#1c1c2e',
+                      border: '1px solid #2a2a3e',
+                      borderRadius: '20px',
+                      fontSize: '13px'
+                    }}
+                  >
+                    <span>{pair}</span>
+                    <button
+                      onClick={() => removePair(pair)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ff5252',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        padding: '0',
+                        width: '20px',
+                        height: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Удалить пару"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add new pair */}
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={newPair}
+                    onChange={(e) => {
+                      setNewPair(e.target.value.toUpperCase())
+                      setNewPairError('')
+                    }}
+                    onKeyPress={(e) => e.key === 'Enter' && addPair()}
+                    placeholder="BTC/USDT"
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: '#1c1c2e',
+                      border: `1px solid ${newPairError ? '#ff5252' : '#2a2a3e'}`,
+                      borderRadius: '6px',
+                      color: '#fff'
+                    }}
+                  />
+                  <button
+                    onClick={addPair}
+                    style={{
+                      padding: '10px 20px',
+                      background: '#00c853',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: '#0a0a0f',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    + Добавить
+                  </button>
+                </div>
+                {newPairError && (
+                  <p style={{ color: '#ff5252', fontSize: '12px', margin: '4px 0 0 0' }}>{newPairError}</p>
+                )}
+              </div>
+
+              {/* Quick add popular pairs */}
+              <div>
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 8px 0' }}>Быстрое добавление:</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {availablePairs
+                    .filter(p => !settings.preferred_pairs.includes(p))
+                    .map((pair) => (
+                      <button
+                        key={pair}
+                        onClick={() => quickAddPair(pair)}
+                        style={{
+                          padding: '4px 10px',
+                          background: '#2a2a3e',
+                          border: '1px solid #3a3a4e',
+                          borderRadius: '4px',
+                          color: '#00d4ff',
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        + {pair}
+                      </button>
+                    ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
