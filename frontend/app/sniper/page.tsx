@@ -126,10 +126,10 @@ Key Factors:
 
 export default function SniperPage() {
   const [mounted, setMounted] = useState(false)
-  const [lang, setLang] = useState('ru')
+  const [lang, setLang] = useState<'ru' | 'en'>('ru')
   const [scanning, setScanning] = useState(false)
   const [selectedPair, setSelectedPair] = useState('BTC/USDT')
-  const [result, setResult] = useState(null)
+  const [result, setResult] = useState<any>(null)
   const [signals, setSignals] = useState(DEMO_SNIPER_SIGNALS)
 
   const t = translations[lang]
@@ -200,8 +200,8 @@ export default function SniperPage() {
     }
   }
 
-  const getDirectionColor = (dir) => dir === 'LONG' ? '#00c853' : '#ff5252'
-  const getDirectionBg = (dir) => dir === 'LONG' ? 'rgba(0, 200, 83, 0.1)' : 'rgba(255, 82, 82, 0.1)'
+  const getDirectionColor = (dir: string) => dir === 'LONG' ? '#00c853' : '#ff5252'
+  const getDirectionBg = (dir: string) => dir === 'LONG' ? 'rgba(0, 200, 83, 0.1)' : 'rgba(255, 82, 82, 0.1)'
 
   if (!mounted) {
     return (

@@ -165,6 +165,9 @@ const SIGNALS_DATA = [
     analysis: 'Distribution after markup. Sign of weakness with volume.'
   }
 ]
+
+const SIGNAL_DETAILS: Record<string, any> = {
+  '2': {
     analysis: {
       wyckoff: 'Distribution forming at top of markup. UTAD pattern visible.',
       smc: 'Fair Value Gap above $2,050 likely to be filled. Bearish order block at $2,040.',
@@ -174,20 +177,7 @@ const SIGNALS_DATA = [
       reward: 'TP1 at $1,961 (1:3.1 R:R). TP2 at $1,928 (1:4.7 R:R).'
     }
   },
-  {
-    id: '3',
-    pair: 'SOL/USDT',
-    direction: 'LONG',
-    confidence: 68,
-    entry: 142.50,
-    stopLoss: 138.00,
-    takeProfit1: 150.00,
-    takeProfit2: 158.00,
-    wyckoffPhase: 'accumulation',
-    killZone: 'Asian',
-    timeframe: '4H',
-    exchange: 'Binance',
-    status: 'ACTIVE',
+  '3': {
     analysis: {
       wyckoff: 'Accumulation with shakeout below $138. Volume drying up.',
       smc: 'Bullish order block at $140. Liquidity sweep completed.',
@@ -196,42 +186,56 @@ const SIGNALS_DATA = [
       risk: 'Stop below shakeout low at $138. Risk: 1.0% of account.',
       reward: 'TP1 at $150 (1:1.7 R:R). TP2 at $158 (1:3.4 R:R).'
     }
-  },
-  {
-    id: '4',
-    pair: 'AVAX/USDT',
-    direction: 'SHORT',
-    confidence: 71,
-    entry: 38.20,
-    stopLoss: 39.50,
-    takeProfit1: 35.80,
-    takeProfit2: 33.50,
-    wyckoffPhase: 'distribution',
-    killZone: 'London Close',
-    timeframe: '4H',
-    exchange: 'KuCoin',
-    status: 'ACTIVE',
-    analysis: {
-      wyckoff: 'Distribution completed. Sign of weakness with volume.',
-      smc: 'Break of structure below $38. Bearish FVG at $38.50.',
-      killZone: 'London Close often brings reversals.',
-      entry: 'Short at $38.20 on re-test of broken support.',
-      risk: 'Stop above distribution zone at $39.50. Risk: 1.1%.',
-      reward: 'TP1 at $35.80 (1:1.8 R:R). TP2 at $33.50 (1:3.6 R:R).'
-    }
   }
+}
+
+// Kill Zone график
+const KILL_ZONE_SCHEDULE = [
+  { name: 'Asian', start: 0, end: 8, color: 'bg-yellow-500' },
+  { name: 'London', start: 8, end: 16, color: 'bg-blue-500' },
+  { name: 'New York', start: 13, end: 21, color: 'bg-green-500' },
+  { name: 'London Close', start: 14, end: 16, color: 'bg-purple-500' },
 ]
 
 const API_URL = 'https://cryptotraderai-api.onrender.com'
 
+interface Signal {
+  id: string
+  pair: string
+  direction: string
+  confidence: number
+  entry: number
+  stop_loss?: number
+  stopLoss?: number
+  take_profit_1?: number
+  take_profit_2?: number
+  takeProfit1?: number
+  takeProfit2?: number
+  wyckoff_phase?: string
+  wyckoffPhase?: string
+  kill_zone?: string
+  killZone?: string
+  timeframe?: string
+  exchange?: string
+  status: string
+  analysis?: string | {
+    wyckoff?: string
+    smc?: string
+    killZone?: string
+    entry?: string
+    risk?: string
+    reward?: string
+  }
+}
+
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false)
-  const [lang, setLang] = useState('ru')
-  const [signals, setSignals] = useState([])
+  const [lang, setLang] = useState<'ru' | 'en'>('ru')
+  const [signals, setSignals] = useState<Signal[]>([])
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [selectedSignal, setSelectedSignal] = useState(null)
+  const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null)
   const [showAnalysis, setShowAnalysis] = useState(false)
   const [stats, setStats] = useState({ total: 0, winRate: 0, wins: 0, losses: 0 })
 
@@ -246,7 +250,7 @@ export default function Dashboard() {
 
   const fetchSignals = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/signals/active`)
+      const res = await fetch(`${API_URL}/api/signals`)
       if (res.ok) {
         const data = await res.json()
         setSignals(data.signals || [])
@@ -310,7 +314,7 @@ export default function Dashboard() {
     }
   }
 
-  const openAnalysis = (signal) => {
+  const openAnalysis = (signal: Signal) => {
     setSelectedSignal(signal)
     setShowAnalysis(true)
   }
@@ -320,9 +324,9 @@ export default function Dashboard() {
     setSelectedSignal(null)
   }
 
-  const getDirectionColor = (dir) => dir === 'LONG' ? '#00c853' : '#ff5252'
-  const getDirectionBg = (dir) => dir === 'LONG' ? 'rgba(0, 200, 83, 0.1)' : 'rgba(255, 82, 82, 0.1)'
-  const getPairIcon = (pair) => {
+  const getDirectionColor = (dir: string) => dir === 'LONG' ? '#00c853' : '#ff5252'
+  const getDirectionBg = (dir: string) => dir === 'LONG' ? 'rgba(0, 200, 83, 0.1)' : 'rgba(255, 82, 82, 0.1)'
+  const getPairIcon = (pair: string) => {
     if (pair.includes('BTC')) return '₿'
     if (pair.includes('ETH')) return 'Ξ'
     if (pair.includes('SOL')) return '◎'
@@ -330,9 +334,9 @@ export default function Dashboard() {
     if (pair.includes('HYPE')) return '🚀'
     return '◈'
   }
-  const calcRR = (entry, sl, tp) => ((tp - entry) / (entry - sl)).toFixed(1)
+  const calcRR = (entry: number, sl: number, tp: number) => ((tp - entry) / (entry - sl)).toFixed(1)
 
-  const getKillZoneName = (kz) => {
+  const getKillZoneName = (kz: string) => {
     if (lang === 'ru') {
       if (kz === 'Asian') return 'Азиатская'
       if (kz === 'London') return 'Лондон'
@@ -475,7 +479,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: '16px' }}>{signal.pair}</h3>
-                      <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{signal.timeframe.toLowerCase()} • {signal.exchange.toLowerCase()}</p>
+                      <p style={{ color: '#6b7280', fontSize: '12px', margin: '4px 0 0' }}>{signal.timeframe?.toLowerCase() || ''} • {signal.exchange?.toLowerCase() || ''}</p>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -498,7 +502,7 @@ export default function Dashboard() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6b7280', paddingTop: '12px', borderTop: '1px solid #1c1c2e', alignItems: 'center' }}>
-                  <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoff_phase || signal.wyckoffPhase || 'unknown'}</strong> | KZ: <strong style={{ color: '#fff' }}>{getKillZoneName(signal.kill_zone || signal.killZone)}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stop_loss || signal.stopLoss, signal.take_profit_1 || signal.takeProfit1)}</strong></span>
+                  <span>Wyckoff: <strong style={{ color: '#fff' }}>{signal.wyckoff_phase || signal.wyckoffPhase || 'unknown'}</strong> | KZ: <strong style={{ color: '#fff' }}>{getKillZoneName(signal.kill_zone || signal.killZone || '')}</strong> | R:R <strong style={{ color: '#fff' }}>1:{calcRR(signal.entry, signal.stop_loss || signal.stopLoss || 0, signal.take_profit_1 || signal.takeProfit1 || 0)}</strong></span>
                   <button 
                     onClick={() => openAnalysis(signal)}
                     style={{
@@ -612,27 +616,27 @@ export default function Dashboard() {
             <div style={{ padding: '24px' }}>
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>📈 {t.wyckoffAnalysis}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.wyckoff}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.wyckoff : selectedSignal?.analysis}</p>
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🎯 {t.smartMoneyConcepts}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.smc}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.smc : '-'}</p>
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⏰ {t.killZoneTiming}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.killZone}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.killZone : '-'}</p>
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🚪 {t.entryLogic}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.entry}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.entry : '-'}</p>
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⚠️ {t.riskManagement}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.risk}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.risk : '-'}</p>
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>💰 {t.rewardTargets}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{selectedSignal?.analysis?.reward}</p>
+                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.reward : '-'}</p>
               </div>
               <div style={{ background: 'rgba(0, 212, 255, 0.1)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(0, 212, 255, 0.3)' }}>
                 <p style={{ margin: 0, fontSize: '14px', color: '#00d4ff' }}>✨ {t.aiConfidence}: <strong>{selectedSignal?.confidence}%</strong></p>

@@ -39,8 +39,20 @@ async def get_signals():
                 "pair": "BTC/USDT",
                 "direction": "LONG",
                 "entry": 63500,
+                "stop_loss": 62800,
+                "take_profit_1": 64500,
+                "take_profit_2": 65500,
                 "confidence": 82,
-                "status": "ACTIVE"
+                "wyckoff_phase": "accumulation",
+                "kill_zone": "London",
+                "timeframe": "4H",
+                "exchange": "Binance",
+                "status": "ACTIVE",
+                "analysis": "Price in accumulation. Spring test completed. Long at $63,500 after BOS."
             }
-        ]
+        ],
+        "total": 42,
+        "win_rate": 36,
+        "wins": 13,
+        "losses": 23
     }
