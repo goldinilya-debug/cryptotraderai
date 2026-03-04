@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
+import requests
 from datetime import datetime
 
 app = FastAPI(
@@ -21,6 +21,31 @@ app.add_middleware(
 # CoinGecko API
 COINGECKO_API = "https://api.coingecko.com/api/v3"
 
+def fetch_prices():
+    """Fetch prices from CoinGecko (sync)"""
+    try:
+        response = requests.get(
+            f"{COINGECKO_API}/simple/price",
+            params={
+                "ids": "bitcoin,ethereum,solana",
+                "vs_currencies": "usd"
+            },
+            timeout=10
+        )
+        data = response.json()
+        return {
+            "bitcoin": data.get("bitcoin", {}).get("usd", 68000),
+            "ethereum": data.get("ethereum", {}).get("usd", 2450),
+            "solana": data.get("solana", {}).get("usd", 142)
+        }
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch prices: {e}")
+        return {
+            "bitcoin": 68000,
+            "ethereum": 2450,
+            "solana": 142
+        }
+
 @app.get("/")
 async def root():
     return {
@@ -37,49 +62,25 @@ async def health():
 @app.get("/api/prices")
 async def get_prices():
     """Get real-time prices from CoinGecko"""
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                f"{COINGECKO_API}/simple/price",
-                params={
-                    "ids": "bitcoin,ethereum,solana",
-                    "vs_currencies": "usd"
-                }
-            )
-            data = response.json()
-            return {
-                "prices": {
-                    "BTC/USDT": data.get("bitcoin", {}).get("usd", 0),
-                    "ETH/USDT": data.get("ethereum", {}).get("usd", 0),
-                    "SOL/USDT": data.get("solana", {}).get("usd", 0)
-                },
-                "timestamp": datetime.utcnow().isoformat(),
-                "source": "CoinGecko"
-            }
-    except Exception as e:
-        return {"error": str(e), "timestamp": datetime.utcnow().isoformat()}
+    prices = fetch_prices()
+    return {
+        "prices": {
+            "BTC/USDT": prices["bitcoin"],
+            "ETH/USDT": prices["ethereum"],
+            "SOL/USDT": prices["solana"]
+        },
+        "timestamp": datetime.utcnow().isoformat(),
+        "source": "CoinGecko"
+    }
 
 @app.get("/api/signals")
 async def get_signals():
     """Get trading signals with real-time prices"""
-    try:
-        # Fetch real prices
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                f"{COINGECKO_API}/simple/price",
-                params={
-                    "ids": "bitcoin,ethereum,solana",
-                    "vs_currencies": "usd"
-                }
-            )
-            data = response.json()
-            
-            btc_price = data.get("bitcoin", {}).get("usd", 68000)
-            eth_price = data.get("ethereum", {}).get("usd", 2450)
-            sol_price = data.get("solana", {}).get("usd", 142)
-    except:
-        # Fallback prices
-        btc_price, eth_price, sol_price = 68000, 2450, 142
+    prices = fetch_prices()
+    
+    btc_price = prices["bitcoin"]
+    eth_price = prices["ethereum"]
+    sol_price = prices["solana"]
     
     return {
         "signals": [
@@ -108,7 +109,7 @@ async def get_signals():
                 }
             },
             {
-                "id": "2", 
+                "id": "2",
                 "pair": "ETH/USDT",
                 "direction": "SHORT",
                 "current_price": eth_price,
