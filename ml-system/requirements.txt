@@ -5,11 +5,3 @@ numpy==1.26.2
 requests==2.31.0
 python-dotenv==1.0.0
 websockets==12.0
-scikit-learn==1.3.2
-lightgbm==4.1.0
-xgboost==2.0.2
-psycopg2-binary==2.9.9
-redis==5.0.1
-apscheduler==3.10.4
-python-binance==1.0.19
-bybit==0.2.12
