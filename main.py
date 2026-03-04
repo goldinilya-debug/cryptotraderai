@@ -4,9 +4,7 @@ import requests
 from datetime import datetime, timedelta
 import json
 import os
-import numpy as np
 from typing import List, Dict, Optional
-import statistics
 
 app = FastAPI(
     title="CryptoTraderAI API",
