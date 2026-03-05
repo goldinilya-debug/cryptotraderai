@@ -98,7 +98,7 @@ class SignalMLModel:
             else:
                 self.pair_stats[pair]['losses'] += 1
                 self.total_losses += 1
-                
+
             # Статистика по направлению
             if outcome == 'WIN':
                 self.direction_stats[direction]['wins'] += 1
@@ -250,29 +250,37 @@ class SignalMLModel:
         }
         
         if self.total_signals > 0:
-            insights['overall_winrate'] = round(self.total_wins / self.total_signals * 100, 2)
+            insights['overall_winrate'] = round(self.total_wins / self.total_signals * 100, 1)
             
         # Лучшие пары (минимум 3 сигнала)
-        pair_winrates = []
+        best_pairs = []
         for pair, stats in self.pair_stats.items():
             if stats['total'] >= 3:
                 winrate = stats['wins'] / stats['total']
-                pair_winrates.append((pair, winrate, stats['total']))
-        pair_winrates.sort(key=lambda x: x[1], reverse=True)
-        insights['best_pairs'] = [{'pair': p, 'winrate': round(w * 100, 1), 'samples': s} for p, w, s in pair_winrates[:5]]
+                best_pairs.append((pair, winrate, stats['total']))
+        best_pairs.sort(key=lambda x: x[1], reverse=True)
+        insights['best_pairs'] = [{'pair': p, 'winrate': round(w*100, 1), 'total': t} for p, w, t in best_pairs[:5]]
         
         # Лучшее направление
         long_total = self.direction_stats['LONG']['wins'] + self.direction_stats['LONG']['losses']
         short_total = self.direction_stats['SHORT']['wins'] + self.direction_stats['SHORT']['losses']
-        long_wr = self.direction_stats['LONG']['wins'] / long_total if long_total > 0 else 0
-        short_wr = self.direction_stats['SHORT']['wins'] / short_total if short_total > 0 else 0
-        insights['best_direction'] = 'LONG' if long_wr > short_wr else 'SHORT'
-        insights['direction_stats'] = {
-            'LONG': {'winrate': round(long_wr * 100, 1), 'total': long_total},
-            'SHORT': {'winrate': round(short_wr * 100, 1), 'total': short_total}
-        }
+        if long_total > 0 and short_total > 0:
+            long_wr = self.direction_stats['LONG']['wins'] / long_total
+            short_wr = self.direction_stats['SHORT']['wins'] / short_total
+            insights['best_direction'] = 'LONG' if long_wr > short_wr else 'SHORT'
+            insights['direction_stats'] = {
+                'LONG': {'winrate': round(long_wr * 100, 1), 'total': long_total},
+                'SHORT': {'winrate': round(short_wr * 100, 1), 'total': short_total}
+            }
+        else:
+            insights['best_direction'] = 'SHORT' if short_total > long_total else 'LONG'
+            insights['direction_stats'] = {
+                'LONG': {'winrate': 0, 'total': long_total},
+                'SHORT': {'winrate': 0, 'total': short_total}
+            }
         
         return insights
+
 
 # Инициализация ML модели
 ml_model = SignalMLModel()
@@ -282,140 +290,23 @@ signals_history = load_signals_history()
 ml_model.train(signals_history)
 print(f"[ML] Model trained on {len(signals_history)} signals")
 
-# ==================== API ENDPOINTS ====================
-
-@app.get("/")
-async def root():
-    return {
-        "name": "CryptoTraderAI API",
-        "version": "2.0.0",
-        "ml_enabled": True,
-        "signals_trained": len(signals_history),
-        "timestamp": datetime.utcnow().isoformat()
-    }
-
-@app.get("/health")
-async def health():
-    return {
-        "status": "healthy",
-        "ml_model": "trained" if signals_history else "untrained",
-        "signals_in_history": len(signals_history)
-    }
-
-@app.get("/api/ml/status")
-async def ml_status():
-    """Статус ML модели"""
-    insights = ml_model.get_insights()
-    return {
-        "status": "active",
-        "signals_trained": len(signals_history),
-        "insights": insights,
-        "last_updated": datetime.utcnow().isoformat()
-    }
-
-@app.post("/api/ml/feedback")
-async def ml_feedback(signal_id: str, outcome: str):
-    """
-    Отправка feedback о сигнале (WIN или LOSS)
-    Это обучает модель
-    """
-    global signals_history, ml_model
-    
-    if outcome not in ['WIN', 'LOSS']:
-        raise HTTPException(status_code=400, detail="Outcome must be WIN or LOSS")
-    
-    # Находим сигнал в истории
-    signal_found = False
-    for signal in signals_history:
-        if signal['id'] == signal_id:
-            signal['outcome'] = outcome
-            signal['feedback_timestamp'] = datetime.utcnow().isoformat()
-            signal_found = True
-            break
-    
-    if not signal_found:
-        raise HTTPException(status_code=404, detail="Signal not found")
-    
-    # Сохраняем и переобучаем
-    save_signals_history(signals_history)
-    ml_model.train(signals_history)
-    
-    return {
-        "success": True,
-        "signal_id": signal_id,
-        "outcome": outcome,
-        "model_retrained": True,
-        "total_signals": len(signals_history)
-    }
-
-@app.post("/api/ml/predict")
-async def ml_predict(signal: dict):
-    """
-    Предсказание уверенности для нового сигнала
-    """
-    confidence = ml_model.predict_confidence(signal)
-    
-    # Добавляем рекомендации
-    recommendations = []
-    insights = ml_model.get_insights()
-    
-    pair = signal.get('pair')
-    direction = signal.get('direction')
-    
-    # Проверяем историю пары
-    if pair in ml_model.pair_stats:
-        stats = ml_model.pair_stats[pair]
-        if stats['total'] >= 3:
-            winrate = stats['wins'] / stats['total']
-            if winrate < 0.4:
-                recommendations.append(f"⚠️ Пара {pair} имеет низкий win rate ({winrate*100:.0f}%)")
-            elif winrate > 0.6:
-                recommendations.append(f"✅ Пара {pair} показывает хорошие результаты ({winrate*100:.0f}%)")
-    
-    # Проверяем направление
-    dir_stats = ml_model.direction_stats.get(direction, {'wins': 0, 'losses': 0})
-    dir_total = dir_stats['wins'] + dir_stats['losses']
-    if dir_total >= 5:
-        dir_wr = dir_stats['wins'] / dir_total
-        if dir_wr < 0.4:
-            recommendations.append(f"⚠️ Направление {direction} слабое в последнее время")
-    
-    return {
-        "predicted_confidence": confidence,
-        "recommendations": recommendations,
-        "model_confidence": "high" if len(signals_history) > 20 else "medium" if len(signals_history) > 5 else "low"
-    }
-
-# ==================== PRICES & SIGNALS ====================
+# ==================== HELPER FUNCTIONS ====================
 
 def fetch_prices():
-    """Fetch prices from CoinGecko"""
+    """Получение цен с CoinGecko"""
     try:
-        response = requests.get(
-            "https://api.coingecko.com/api/v3/simple/price",
-            params={"ids": "bitcoin,ethereum,solana", "vs_currencies": "usd"},
-            timeout=10
-        )
-        data = response.json()
+        url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd"
+        res = requests.get(url, timeout=10)
+        data = res.json()
         return {
-            "bitcoin": data.get("bitcoin", {}).get("usd", 68000),
-            "ethereum": data.get("ethereum", {}).get("usd", 2450),
-            "solana": data.get("solana", {}).get("usd", 142)
+            'bitcoin': data['bitcoin']['usd'],
+            'ethereum': data['ethereum']['usd'],
+            'solana': data.get('solana', {}).get('usd', 140)
         }
-    except:
-        return {"bitcoin": 68000, "ethereum": 2450, "solana": 142}
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch prices: {e}")
+        return {'bitcoin': 68000, 'ethereum': 2450, 'solana': 140}
 
-@app.get("/api/prices")
-async def get_prices():
-    prices = fetch_prices()
-    return {
-        "prices": {
-            "BTC/USDT": prices["bitcoin"],
-            "ETH/USDT": prices["ethereum"],
-            "SOL/USDT": prices["solana"]
-        },
-        "timestamp": datetime.utcnow().isoformat()
-    }
 
 def calculate_risk_reward(entry: float, stop: float, tp: float, direction: str) -> float:
     """Расчёт соотношения риск/доходность (R:R)"""
@@ -435,7 +326,7 @@ def generate_smart_signal(pair: str, direction: str, current_price: float,
                           wyckoff: str, kill_zone: str) -> Dict:
     """Генерация сигнала с правильным R:R минимум 1:2"""
     
-    # Риск на сделку — 2-3%
+    # Риск на сделку — 2.5%
     risk_percent = 0.025
     
     if direction == 'LONG':
@@ -479,6 +370,42 @@ def generate_smart_signal(pair: str, direction: str, current_price: float,
     }
 
 
+# ==================== API ENDPOINTS ====================
+
+@app.get("/")
+async def root():
+    return {
+        "name": "CryptoTraderAI API",
+        "version": "2.0.0",
+        "ml_enabled": True,
+        "signals_trained": len(signals_history),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy",
+        "ml_model": "trained" if signals_history else "untrained",
+        "signals_in_history": len(signals_history)
+    }
+
+
+@app.get("/api/prices")
+async def get_prices():
+    """Текущие цены"""
+    prices = fetch_prices()
+    return {
+        "prices": {
+            "BTC/USDT": prices['bitcoin'],
+            "ETH/USDT": prices['ethereum'],
+            "SOL/USDT": prices['solana']
+        },
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
 @app.get("/api/signals")
 async def get_signals():
     """Get signals with ML-enhanced confidence and proper R:R"""
@@ -486,12 +413,12 @@ async def get_signals():
     
     # Проверяем, есть ли активные сигналы за сегодня
     today = datetime.now().strftime('%Y%m%d')
-    existing_signals = [s for s in signals_history if s['id'].startswith(f"sig_{today}") and s['status'] == 'ACTIVE']
+    existing_signals = [s for s in signals_history if s.get('id', '').startswith(f"sig_{today}") and s.get('status') == 'ACTIVE']
     
     if existing_signals:
         # Возвращаем существующие сигналы
         enhanced_signals = []
-        for signal in existing_signals[-2:]:  # Последние 2
+        for signal in existing_signals[-3:]:  # Последние 3
             ml_confidence = ml_model.predict_confidence(signal)
             signal['ml_confidence'] = ml_confidence
             signal['ml_enhanced'] = True
@@ -565,7 +492,7 @@ async def close_signal(signal_id: str, outcome: str, pnl: float = 0):
     # Находим сигнал
     signal_found = False
     for signal in signals_history:
-        if signal['id'] == signal_id:
+        if signal.get('id') == signal_id:
             signal['status'] = 'CLOSED'
             signal['outcome'] = outcome
             signal['pnl'] = pnl
@@ -613,59 +540,92 @@ async def get_signals_history(limit: int = 50):
         "total": len(signals_history),
         "with_outcome": len([s for s in signals_history if 'outcome' in s])
     }
-            ml_confidence = ml_model.predict_confidence(signal)
-            signal['ml_confidence'] = ml_confidence
-            signal['ml_enhanced'] = True
-            enhanced_signals.append(signal)
-    else:
-        # Генерируем новые сигналы с правильной логикой
-        base_signals = [
-            generate_smart_signal(
-                "BTC/USDT", "LONG", prices["bitcoin"],
-                "markup", "New York"
-            ),
-            generate_smart_signal(
-                "ETH/USDT", "SHORT", prices["ethereum"],
-                "distribution", "London"
-            ),
-            generate_smart_signal(
-                "SOL/USDT", "LONG", prices.get("solana", 140),
-                "accumulation", "Asian"
-            )
-        ]
-        
-        enhanced_signals = []
-        for idx, signal in enumerate(base_signals, 1):
-            signal['id'] = f"sig_{today}_{idx:03d}"
-            
-            # ML предсказание
-            ml_confidence = ml_model.predict_confidence(signal)
-            final_confidence = round((signal['confidence'] + ml_confidence) / 2, 1)
-            
-            signal['ml_confidence'] = ml_confidence
-            signal['confidence'] = min(final_confidence, 95)  # Макс 95%
-            signal['ml_enhanced'] = True
-            
-            enhanced_signals.append(signal)
-            
-            # Сохраняем в историю
-            signal_copy = signal.copy()
-            signal_copy['timestamp'] = datetime.utcnow().isoformat()
-            signal_copy['created_at'] = datetime.utcnow().isoformat()
-            signals_history.append(signal_copy)
-        
-        # Сохраняем историю (ограничиваем 1000 сигналов)
-        if len(signals_history) > 1000:
-            signals_history[:] = signals_history[-1000:]
-        save_signals_history(signals_history)
-        # Переобучаем модель
-        ml_model.train(signals_history)
-    
+
+
+@app.get("/api/ml/status")
+async def ml_status():
+    """Статус ML модели"""
     insights = ml_model.get_insights()
+    return {
+        "status": "active",
+        "signals_trained": len(signals_history),
+        "insights": insights,
+        "last_updated": datetime.utcnow().isoformat()
+    }
+
+
+@app.post("/api/ml/feedback")
+async def ml_feedback(signal_id: str, outcome: str):
+    """
+    Отправка feedback о сигнале (WIN или LOSS)
+    Это обучает модель
+    """
+    global signals_history, ml_model
+    
+    if outcome not in ['WIN', 'LOSS']:
+        raise HTTPException(status_code=400, detail="Outcome must be WIN or LOSS")
+    
+    # Находим сигнал в истории
+    signal_found = False
+    for signal in signals_history:
+        if signal.get('id') == signal_id:
+            signal['outcome'] = outcome
+            signal['feedback_timestamp'] = datetime.utcnow().isoformat()
+            signal_found = True
+            break
+    
+    if not signal_found:
+        raise HTTPException(status_code=404, detail="Signal not found")
+    
+    # Сохраняем и переобучаем
+    save_signals_history(signals_history)
+    ml_model.train(signals_history)
     
     return {
-        "signals": enhanced_signals,
-        "ml_insights": insights,
-        "total_active": len(enhanced_signals),
+        "success": True,
+        "signal_id": signal_id,
+        "outcome": outcome,
+        "model_retrained": True,
+        "total_signals": len(signals_history)
+    }
+
+
+@app.post("/api/ml/predict")
+async def ml_predict(signal: dict):
+    """
+    Предсказание уверенности для нового сигнала
+    """
+    confidence = ml_model.predict_confidence(signal)
+    
+    # Добавляем рекомендации
+    recommendations = []
+    insights = ml_model.get_insights()
+    
+    pair = signal.get('pair')
+    direction = signal.get('direction')
+    
+    # Проверяем историю пары
+    if pair in ml_model.pair_stats:
+        stats = ml_model.pair_stats[pair]
+        if stats['total'] >= 3:
+            winrate = stats['wins'] / stats['total']
+            if winrate < 0.4:
+                recommendations.append(f"⚠️ {pair} has low winrate ({winrate:.0%}) - consider avoiding")
+            elif winrate > 0.6:
+                recommendations.append(f"✅ {pair} has strong winrate ({winrate:.0%})")
+    
+    # Проверяем направление
+    if direction in ml_model.direction_stats:
+        dir_stats = ml_model.direction_stats[direction]
+        dir_total = dir_stats['wins'] + dir_stats['losses']
+        if dir_total >= 5:
+            dir_winrate = dir_stats['wins'] / dir_total
+            if dir_winrate < 0.4:
+                recommendations.append(f"⚠️ {direction} signals underperforming")
+    
+    return {
+        "confidence": confidence,
+        "recommendations": recommendations,
+        "model_signals_trained": len(signals_history),
         "timestamp": datetime.utcnow().isoformat()
     }
