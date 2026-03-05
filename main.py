@@ -417,76 +417,255 @@ async def get_prices():
         "timestamp": datetime.utcnow().isoformat()
     }
 
+def calculate_risk_reward(entry: float, stop: float, tp: float, direction: str) -> float:
+    """Расчёт соотношения риск/доходность (R:R)"""
+    if direction == 'LONG':
+        risk = abs(entry - stop)
+        reward = abs(tp - entry)
+    else:  # SHORT
+        risk = abs(stop - entry)
+        reward = abs(entry - tp)
+    
+    if risk == 0:
+        return 0
+    return round(reward / risk, 2)
+
+
+def generate_smart_signal(pair: str, direction: str, current_price: float, 
+                          wyckoff: str, kill_zone: str) -> Dict:
+    """Генерация сигнала с правильным R:R минимум 1:2"""
+    
+    # Риск на сделку — 2-3%
+    risk_percent = 0.025
+    
+    if direction == 'LONG':
+        # Для LONG: entry чуть выше текущей, стоп ниже
+        entry = round(current_price * 1.005, 2)  # +0.5%
+        stop_loss = round(current_price * (1 - risk_percent), 2)  # -2.5%
+        # R:R = 1:2 минимум → tp = entry + 2*risk
+        risk = entry - stop_loss
+        take_profit_1 = round(entry + risk * 2, 2)  # 1:2 R:R
+        take_profit_2 = round(entry + risk * 3, 2)  # 1:3 R:R
+        confidence = 75 if wyckoff == 'markup' else 65
+    else:  # SHORT
+        # Для SHORT: entry чуть ниже текущей, стоп выше
+        entry = round(current_price * 0.995, 2)  # -0.5%
+        stop_loss = round(current_price * (1 + risk_percent), 2)  # +2.5%
+        # R:R = 1:2 минимум
+        risk = stop_loss - entry
+        take_profit_1 = round(entry - risk * 2, 2)  # 1:2 R:R
+        take_profit_2 = round(entry - risk * 3, 2)  # 1:3 R:R
+        confidence = 73 if wyckoff == 'distribution' else 63
+    
+    rr1 = calculate_risk_reward(entry, stop_loss, take_profit_1, direction)
+    rr2 = calculate_risk_reward(entry, stop_loss, take_profit_2, direction)
+    
+    return {
+        "pair": pair,
+        "direction": direction,
+        "current_price": current_price,
+        "entry": entry,
+        "stop_loss": stop_loss,
+        "take_profit_1": take_profit_1,
+        "take_profit_2": take_profit_2,
+        "rr_ratio_tp1": rr1,
+        "rr_ratio_tp2": rr2,
+        "confidence": confidence,
+        "wyckoff_phase": wyckoff,
+        "kill_zone": kill_zone,
+        "timeframe": "4H",
+        "exchange": "Binance",
+        "status": "ACTIVE"
+    }
+
+
 @app.get("/api/signals")
 async def get_signals():
-    """Get signals with ML-enhanced confidence"""
+    """Get signals with ML-enhanced confidence and proper R:R"""
     prices = fetch_prices()
     
-    # Базовые сигналы
-    base_signals = [
-        {
-            "id": f"sig_{datetime.now().strftime('%Y%m%d')}_001",
-            "pair": "BTC/USDT",
-            "direction": "LONG",
-            "current_price": prices["bitcoin"],
-            "entry": round(prices["bitcoin"] * 1.01, 2),
-            "stop_loss": round(prices["bitcoin"] * 0.97, 2),
-            "take_profit_1": round(prices["bitcoin"] * 1.05, 2),
-            "take_profit_2": round(prices["bitcoin"] * 1.10, 2),
-            "confidence": 78,
-            "wyckoff_phase": "markup",
-            "kill_zone": "New York",
-            "timeframe": "4H",
-            "exchange": "Binance",
-            "status": "ACTIVE"
-        },
-        {
-            "id": f"sig_{datetime.now().strftime('%Y%m%d')}_002",
-            "pair": "ETH/USDT",
-            "direction": "SHORT",
-            "current_price": prices["ethereum"],
-            "entry": round(prices["ethereum"] * 0.99, 2),
-            "stop_loss": round(prices["ethereum"] * 1.03, 2),
-            "take_profit_1": round(prices["ethereum"] * 0.95, 2),
-            "take_profit_2": round(prices["ethereum"] * 0.90, 2),
-            "confidence": 74,
-            "wyckoff_phase": "distribution",
-            "kill_zone": "London",
-            "timeframe": "4H",
-            "exchange": "Binance",
-            "status": "ACTIVE"
-        }
-    ]
+    # Проверяем, есть ли активные сигналы за сегодня
+    today = datetime.now().strftime('%Y%m%d')
+    existing_signals = [s for s in signals_history if s['id'].startswith(f"sig_{today}") and s['status'] == 'ACTIVE']
     
-    # Улучшаем сигналы с помощью ML
-    enhanced_signals = []
-    for signal in base_signals:
-        # Получаем ML предсказание
-        ml_confidence = ml_model.predict_confidence(signal)
+    if existing_signals:
+        # Возвращаем существующие сигналы
+        enhanced_signals = []
+        for signal in existing_signals[-2:]:  # Последние 2
+            ml_confidence = ml_model.predict_confidence(signal)
+            signal['ml_confidence'] = ml_confidence
+            signal['ml_enhanced'] = True
+            enhanced_signals.append(signal)
+    else:
+        # Генерируем новые сигналы с правильной логикой
+        base_signals = [
+            generate_smart_signal(
+                "BTC/USDT", "LONG", prices["bitcoin"],
+                "markup", "New York"
+            ),
+            generate_smart_signal(
+                "ETH/USDT", "SHORT", prices["ethereum"],
+                "distribution", "London"
+            ),
+            generate_smart_signal(
+                "SOL/USDT", "LONG", prices.get("solana", 140),
+                "accumulation", "Asian"
+            )
+        ]
         
-        # Объединяем базовую и ML уверенность
-        final_confidence = round((signal['confidence'] + ml_confidence) / 2, 1)
+        enhanced_signals = []
+        for idx, signal in enumerate(base_signals, 1):
+            signal['id'] = f"sig_{today}_{idx:03d}"
+            
+            # ML предсказание
+            ml_confidence = ml_model.predict_confidence(signal)
+            final_confidence = round((signal['confidence'] + ml_confidence) / 2, 1)
+            
+            signal['ml_confidence'] = ml_confidence
+            signal['confidence'] = min(final_confidence, 95)  # Макс 95%
+            signal['ml_enhanced'] = True
+            
+            enhanced_signals.append(signal)
+            
+            # Сохраняем в историю
+            signal_copy = signal.copy()
+            signal_copy['timestamp'] = datetime.utcnow().isoformat()
+            signal_copy['created_at'] = datetime.utcnow().isoformat()
+            signals_history.append(signal_copy)
         
-        signal['ml_confidence'] = ml_confidence
-        signal['confidence'] = final_confidence
-        signal['ml_enhanced'] = True
-        
-        enhanced_signals.append(signal)
-        
-        # Сохраняем в историю (без outcome пока)
-        signal_copy = signal.copy()
-        signal_copy['timestamp'] = datetime.utcnow().isoformat()
-        signals_history.append(signal_copy)
-    
-    # Сохраняем историю (ограничиваем 1000 сигналов)
-    if len(signals_history) > 1000:
-        signals_history[:] = signals_history[-1000:]
-    save_signals_history(signals_history)
+        # Сохраняем историю (ограничиваем 1000 сигналов)
+        if len(signals_history) > 1000:
+            signals_history[:] = signals_history[-1000:]
+        save_signals_history(signals_history)
+        # Переобучаем модель
+        ml_model.train(signals_history)
     
     insights = ml_model.get_insights()
     
     return {
         "signals": enhanced_signals,
         "ml_insights": insights,
+        "total_active": len(enhanced_signals),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.post("/api/signals/{signal_id}/close")
+async def close_signal(signal_id: str, outcome: str, pnl: float = 0):
+    """
+    Закрыть сигнал с результатом.
+    outcome: WIN (достиг TP) или LOSS (достиг SL)
+    pnl: прибыль/убыток в USD или %
+    """
+    global signals_history, ml_model
+    
+    if outcome not in ['WIN', 'LOSS']:
+        raise HTTPException(status_code=400, detail="Outcome must be WIN or LOSS")
+    
+    # Находим сигнал
+    signal_found = False
+    for signal in signals_history:
+        if signal['id'] == signal_id:
+            signal['status'] = 'CLOSED'
+            signal['outcome'] = outcome
+            signal['pnl'] = pnl
+            signal['closed_at'] = datetime.utcnow().isoformat()
+            signal_found = True
+            break
+    
+    if not signal_found:
+        raise HTTPException(status_code=404, detail="Signal not found")
+    
+    # Сохраняем и переобучаем модель
+    save_signals_history(signals_history)
+    ml_model.train(signals_history)
+    
+    # Статистика после обучения
+    insights = ml_model.get_insights()
+    
+    return {
+        "success": True,
+        "signal_id": signal_id,
+        "outcome": outcome,
+        "pnl": pnl,
+        "model_retrained": True,
+        "current_stats": {
+            "total_signals": insights['total_signals'],
+            "win_rate": insights['overall_winrate'],
+            "wins": insights['total_wins'],
+            "losses": insights['total_losses']
+        }
+    }
+
+
+@app.get("/api/signals/history")
+async def get_signals_history(limit: int = 50):
+    """История всех сигналов с результатами"""
+    # Сортируем по дате (новые первые)
+    sorted_history = sorted(
+        signals_history, 
+        key=lambda x: x.get('created_at', x.get('timestamp', '')), 
+        reverse=True
+    )
+    
+    return {
+        "signals": sorted_history[:limit],
+        "total": len(signals_history),
+        "with_outcome": len([s for s in signals_history if 'outcome' in s])
+    }
+            ml_confidence = ml_model.predict_confidence(signal)
+            signal['ml_confidence'] = ml_confidence
+            signal['ml_enhanced'] = True
+            enhanced_signals.append(signal)
+    else:
+        # Генерируем новые сигналы с правильной логикой
+        base_signals = [
+            generate_smart_signal(
+                "BTC/USDT", "LONG", prices["bitcoin"],
+                "markup", "New York"
+            ),
+            generate_smart_signal(
+                "ETH/USDT", "SHORT", prices["ethereum"],
+                "distribution", "London"
+            ),
+            generate_smart_signal(
+                "SOL/USDT", "LONG", prices.get("solana", 140),
+                "accumulation", "Asian"
+            )
+        ]
+        
+        enhanced_signals = []
+        for idx, signal in enumerate(base_signals, 1):
+            signal['id'] = f"sig_{today}_{idx:03d}"
+            
+            # ML предсказание
+            ml_confidence = ml_model.predict_confidence(signal)
+            final_confidence = round((signal['confidence'] + ml_confidence) / 2, 1)
+            
+            signal['ml_confidence'] = ml_confidence
+            signal['confidence'] = min(final_confidence, 95)  # Макс 95%
+            signal['ml_enhanced'] = True
+            
+            enhanced_signals.append(signal)
+            
+            # Сохраняем в историю
+            signal_copy = signal.copy()
+            signal_copy['timestamp'] = datetime.utcnow().isoformat()
+            signal_copy['created_at'] = datetime.utcnow().isoformat()
+            signals_history.append(signal_copy)
+        
+        # Сохраняем историю (ограничиваем 1000 сигналов)
+        if len(signals_history) > 1000:
+            signals_history[:] = signals_history[-1000:]
+        save_signals_history(signals_history)
+        # Переобучаем модель
+        ml_model.train(signals_history)
+    
+    insights = ml_model.get_insights()
+    
+    return {
+        "signals": enhanced_signals,
+        "ml_insights": insights,
+        "total_active": len(enhanced_signals),
         "timestamp": datetime.utcnow().isoformat()
     }
