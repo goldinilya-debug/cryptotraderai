@@ -629,3 +629,97 @@ async def ml_predict(signal: dict):
         "model_signals_trained": len(signals_history),
         "timestamp": datetime.utcnow().isoformat()
     }
+
+
+# ==================== ML SETTINGS & LEARNING STATUS ====================
+
+# Default ML settings
+DEFAULT_ML_SETTINGS = {
+    "min_confidence": 70,
+    "min_risk_reward": 1.5,
+    "max_daily_signals": 10,
+    "auto_adjust_confidence": True,
+    "learning_rate": 0.1,
+    "min_samples_for_ml": 5,
+    "preferred_pairs": ["BTC/USDT", "ETH/USDT"],
+    "avoid_low_performance": True,
+    "min_pair_win_rate": 40.0
+}
+
+# Load or create settings
+ml_settings_file = "ml_settings.json"
+ml_learning_state = {"learning_enabled": True, "status": "collecting_data"}
+
+
+def load_ml_settings():
+    if os.path.exists(ml_settings_file):
+        with open(ml_settings_file, 'r') as f:
+            return json.load(f)
+    return DEFAULT_ML_SETTINGS.copy()
+
+
+def save_ml_settings(settings):
+    with open(ml_settings_file, 'w') as f:
+        json.dump(settings, f, indent=2)
+
+
+@app.get("/api/ml/learning-status")
+async def get_learning_status():
+    """Статус обучения ML для фронтенда"""
+    signals_with_outcome = [s for s in signals_history if 'outcome' in s]
+    total_signals = len(signals_history)
+    
+    # Прогресс обучения: минимум 5 сигналов для старта, макс при 50
+    min_for_learning = 5
+    max_for_full = 50
+    progress = min(100, (len(signals_with_outcome) / max_for_full) * 100)
+    
+    return {
+        "learning_enabled": ml_learning_state["learning_enabled"],
+        "signals_collected": total_signals,
+        "signals_with_outcome": len(signals_with_outcome),
+        "learning_progress": round(progress, 1),
+        "status": "active" if len(signals_with_outcome) >= min_for_learning else "collecting_data",
+        "min_samples_required": min_for_learning
+    }
+
+
+@app.post("/api/ml/pause-learning")
+async def pause_learning():
+    """Поставить обучение на паузу"""
+    ml_learning_state["learning_enabled"] = False
+    ml_learning_state["status"] = "paused"
+    return {"success": True, "message": "Learning paused", "status": ml_learning_state["status"]}
+
+
+@app.post("/api/ml/resume-learning")
+async def resume_learning():
+    """Возобновить обучение"""
+    ml_learning_state["learning_enabled"] = True
+    signals_with_outcome = len([s for s in signals_history if 'outcome' in s])
+    ml_learning_state["status"] = "active" if signals_with_outcome >= 5 else "collecting_data"
+    return {"success": True, "message": "Learning resumed", "status": ml_learning_state["status"]}
+
+
+@app.get("/api/ml/settings")
+async def get_ml_settings():
+    """Получить настройки ML"""
+    settings = load_ml_settings()
+    return settings
+
+
+@app.post("/api/ml/settings")
+async def update_ml_settings(settings: dict):
+    """Обновить настройки ML"""
+    current = load_ml_settings()
+    # Merge new settings with current
+    current.update(settings)
+    save_ml_settings(current)
+    return {"success": True, "settings": current}
+
+
+@app.post("/api/ml/settings/reset")
+async def reset_ml_settings():
+    """Сбросить настройки к дефолтным"""
+    save_ml_settings(DEFAULT_ML_SETTINGS.copy())
+    return {"success": True, "settings": DEFAULT_ML_SETTINGS.copy()}
