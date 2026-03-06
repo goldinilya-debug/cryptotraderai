@@ -91,86 +91,6 @@ const translations = {
   }
 }
 
-const DEMO_STATS = {
-  totalSignals: 156,
-  activeSignals: 3,
-  winRate: 68,
-  hitTP: 106,
-  hitSL: 50,
-}
-
-const SIGNALS_DATA = [
-  {
-    id: '1',
-    pair: 'BTC/USDT',
-    direction: 'LONG',
-    confidence: 78,
-    entry: 88450,
-    stop_loss: 86500,
-    take_profit_1: 92000,
-    take_profit_2: 96500,
-    wyckoff_phase: 'markup',
-    kill_zone: 'New York',
-    timeframe: '4H',
-    exchange: 'Binance',
-    status: 'ACTIVE',
-    analysis: {
-      wyckoff: 'Price in markup phase after successful accumulation. Breaking above key resistance with volume.',
-      smc: 'Bullish order block at $87,200. Fair Value Gap above $90K likely to be filled.',
-      killZone: 'New York session showing strong buying pressure by smart money.',
-      entry: 'Long at $88,450 after reclaim of $87K support turned resistance.',
-      risk: 'Stop below recent swing low at $86,500. Risk: 2.2% of account.',
-      reward: 'TP1 at $92K (1:2.1 R:R). TP2 at $96.5K (1:3.9 R:R).'
-    }
-  },
-  {
-    id: '2',
-    pair: 'ETH/USDT',
-    direction: 'SHORT',
-    confidence: 74,
-    entry: 2450,
-    stop_loss: 2520,
-    take_profit_1: 2350,
-    take_profit_2: 2280,
-    wyckoff_phase: 'distribution',
-    kill_zone: 'London',
-    timeframe: '4H',
-    exchange: 'Binance',
-    status: 'ACTIVE',
-    analysis: {
-      wyckoff: 'Distribution forming at top of markup. Sign of weakness with decreasing volume.',
-      smc: 'Bearish order block at $2,480. Liquidity sweep above $2,500 likely.',
-      killZone: 'London session showing distribution by institutional sellers.',
-      entry: 'Short at $2,450 after rejection from $2,500 resistance.',
-      risk: 'Stop above distribution high at $2,520. Risk: 2.9% of account.',
-      reward: 'TP1 at $2,350 (1:1.4 R:R). TP2 at $2,280 (1:2.4 R:R).'
-    }
-  },
-  {
-    id: '3',
-    pair: 'SOL/USDT',
-    direction: 'LONG',
-    confidence: 82,
-    entry: 142.50,
-    stop_loss: 138.00,
-    take_profit_1: 150.00,
-    take_profit_2: 158.00,
-    wyckoff_phase: 'accumulation',
-    kill_zone: 'Asian',
-    timeframe: '4H',
-    exchange: 'Binance',
-    status: 'ACTIVE',
-    analysis: {
-      wyckoff: 'Accumulation with shakeout below $138. Volume drying up - classic spring.',
-      smc: 'Bullish order block at $140. Liquidity sweep completed below $138.',
-      killZone: 'Asian session providing quiet accumulation before breakout.',
-      entry: 'Long at $142.50 after reclaim of $140 key level.',
-      risk: 'Stop below shakeout low at $138. Risk: 3.2% of account.',
-      reward: 'TP1 at $150 (1:1.7 R:R). TP2 at $158 (1:3.1 R:R).'
-    }
-  }
-]
-
 // Kill Zone график
 const KILL_ZONE_SCHEDULE = [
   { name: 'Asian', start: 0, end: 8, color: 'bg-yellow-500' },
@@ -249,21 +169,21 @@ export default function Dashboard() {
 
   const fetchSignals = async () => {
     try {
-      // Получаем только статистику с бэкенда, сигналы будем генерировать от реальных цен
+      // Получаем статистику с бэкенда
       const res = await fetch(`${API_URL}/api/signals`)
       if (res.ok) {
         const data = await res.json()
         setStats({
-          total: data.total || 156,
-          winRate: data.win_rate || 68,
-          wins: data.wins || 106,
-          losses: data.losses || 50
+          total: data.total || 0,
+          winRate: data.win_rate || 0,
+          wins: data.wins || 0,
+          losses: data.losses || 0
         })
         // Сигналы будут сгенерированы после получения цен
       }
     } catch (e) {
       console.log('API error:', e)
-      setStats({ total: 156, winRate: 68, wins: 106, losses: 50 })
+      setStats({ total: 0, winRate: 0, wins: 0, losses: 0 })
     } finally {
       setLoading(false)
     }
@@ -378,27 +298,7 @@ export default function Dashboard() {
         const newSignal = await res.json()
         setSignals([newSignal, ...signals])
       } else {
-        // Fallback demo generation
-        await new Promise(r => setTimeout(r, 1500))
-        const isLong = Math.random() > 0.5
-        const basePrice = randomPair.includes('PEPE') ? 0.008 : randomPair.includes('HYPE') ? 18 : randomPair.includes('BTC') ? 63500 : randomPair.includes('ETH') ? 3500 : 140
-        const demoSignal = {
-          id: Date.now().toString(),
-          pair: randomPair,
-          direction: isLong ? 'LONG' : 'SHORT',
-          confidence: Math.floor(Math.random() * 20) + 70,
-          entry: basePrice,
-          stop_loss: isLong ? basePrice * 0.985 : basePrice * 1.015,
-          take_profit_1: isLong ? basePrice * 1.03 : basePrice * 0.97,
-          take_profit_2: isLong ? basePrice * 1.06 : basePrice * 0.94,
-          wyckoff_phase: isLong ? 'accumulation' : 'distribution',
-          kill_zone: ['London', 'New York', 'Asian'][Math.floor(Math.random() * 3)],
-          timeframe: '4H',
-          exchange: 'Binance',
-          status: 'ACTIVE',
-          analysis: `AI generated ${isLong ? 'LONG' : 'SHORT'} signal for ${randomPair}`
-        }
-        setSignals([demoSignal, ...signals])
+        console.log('API error:', res.status)
       }
     } catch (e) {
       console.log('Generate error:', e)
