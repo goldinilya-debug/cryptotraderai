@@ -38,6 +38,12 @@ app.add_middleware(
 # WEBHOOK_SECRET - для защиты вебхуков
 
 EXCHANGE_CONFIG = {
+    'bingx': {
+        'apiKey': os.getenv('BINGX_API_KEY'),
+        'secret': os.getenv('BINGX_API_SECRET'),
+        'options': {'defaultType': 'spot'},
+        'sandbox': os.getenv('BINGX_SANDBOX', 'false').lower() == 'true'
+    },
     'binance': {
         'apiKey': os.getenv('BINANCE_API_KEY'),
         'secret': os.getenv('BINANCE_API_SECRET'),
@@ -61,7 +67,7 @@ class TradingSignal(BaseModel):
     stop_loss: Optional[float] = Field(None, example=62000)
     take_profit: Optional[float] = Field(None, example=68000)
     risk_percent: float = Field(2.0, ge=0.1, le=100, example=2.0)
-    exchange: Literal["binance", "bybit"] = "binance"
+    exchange: Literal["bingx", "binance", "bybit"] = "bingx"
     dry_run: bool = Field(False, description="Тестовый режим без реальных сделок")
 
 class TradeResult(BaseModel):

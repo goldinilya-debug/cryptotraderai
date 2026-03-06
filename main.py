@@ -723,3 +723,145 @@ async def reset_ml_settings():
     """Сбросить настройки к дефолтным"""
     save_ml_settings(DEFAULT_ML_SETTINGS.copy())
     return {"success": True, "settings": DEFAULT_ML_SETTINGS.copy()}
+
+
+# ==================== TRADING BOT INTEGRATION ====================
+
+# Настройки для торгового бота
+TRADING_BOT_CONFIG = {
+    "webhook_url": os.getenv("TRADING_BOT_WEBHOOK_URL", ""),
+    "webhook_secret": os.getenv("TRADING_BOT_WEBHOOK_SECRET", ""),
+    "enabled": os.getenv("AUTO_TRADING_ENABLED", "false").lower() == "true",
+    "default_exchange": os.getenv("DEFAULT_TRADING_EXCHANGE", "bingx"),
+    "default_risk_percent": float(os.getenv("DEFAULT_RISK_PERCENT", "2.0"))
+}
+
+
+@app.post("/api/signals/{signal_id}/execute")
+async def execute_signal(signal_id: str):
+    """
+    Отправить сигнал на исполнение в торговый бот
+    Требует настройки TRADING_BOT_WEBHOOK_URL
+    """
+    if not TRADING_BOT_CONFIG["enabled"]:
+        raise HTTPException(status_code=400, detail="Auto trading is disabled")
+    
+    if not TRADING_BOT_CONFIG["webhook_url"]:
+        raise HTTPException(status_code=400, detail="Trading bot webhook not configured")
+    
+    # Найти сигнал
+    signal = None
+    for s in signals_history:
+        if s.get("id") == signal_id:
+            signal = s
+            break
+    
+    if not signal:
+        raise HTTPException(status_code=404, detail="Signal not found")
+    
+    # Подготовить payload для торгового бота
+    payload = {
+        "pair": signal.get("pair", ""),
+        "direction": signal.get("direction", "LONG"),
+        "entry": signal.get("entry", 0),
+        "confidence": signal.get("confidence", 0),
+        "stop_loss": signal.get("stop_loss"),
+        "take_profit": signal.get("take_profit_1"),
+        "risk_percent": TRADING_BOT_CONFIG["default_risk_percent"],
+        "exchange": TRADING_BOT_CONFIG["default_exchange"],
+        "dry_run": False
+    }
+    
+    try:
+        # Отправить в торговый бот
+        headers = {}
+        if TRADING_BOT_CONFIG["webhook_secret"]:
+            headers["X-Webhook-Secret"] = TRADING_BOT_CONFIG["webhook_secret"]
+        
+        response = requests.post(
+            f"{TRADING_BOT_CONFIG['webhook_url']}/webhook/signal",
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            return {
+                "success": True,
+                "message": "Signal sent to trading bot",
+                "order_id": result.get("order_id"),
+                "status": result.get("status")
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Trading bot error: {response.status_code}",
+                "details": response.text
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Failed to send signal: {str(e)}"
+        }
+
+
+@app.get("/api/trading/config")
+async def get_trading_config():
+    """Получить конфигурацию авто-торговли (без секрета)"""
+    return {
+        "enabled": TRADING_BOT_CONFIG["enabled"],
+        "webhook_configured": bool(TRADING_BOT_CONFIG["webhook_url"]),
+        "default_exchange": TRADING_BOT_CONFIG["default_exchange"],
+        "default_risk_percent": TRADING_BOT_CONFIG["default_risk_percent"]
+    }
+
+
+@app.post("/api/trading/test-webhook")
+async def test_trading_webhook():
+    """Протестировать соединение с торговым ботом"""
+    if not TRADING_BOT_CONFIG["webhook_url"]:
+        raise HTTPException(status_code=400, detail="Trading bot webhook not configured")
+    
+    try:
+        headers = {}
+        if TRADING_BOT_CONFIG["webhook_secret"]:
+            headers["X-Webhook-Secret"] = TRADING_BOT_CONFIG["webhook_secret"]
+        
+        # Тестовый сигнал с dry_run
+        test_signal = {
+            "pair": "BTC/USDT",
+            "direction": "LONG",
+            "entry": 65000,
+            "confidence": 75,
+            "risk_percent": 1.0,
+            "exchange": TRADING_BOT_CONFIG["default_exchange"],
+            "dry_run": True
+        }
+        
+        response = requests.post(
+            f"{TRADING_BOT_CONFIG['webhook_url']}/webhook/signal",
+            json=test_signal,
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            return {
+                "success": True,
+                "message": "Trading bot connection successful",
+                "response": response.json()
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Trading bot returned error: {response.status_code}",
+                "details": response.text
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Connection failed: {str(e)}"
+        }
