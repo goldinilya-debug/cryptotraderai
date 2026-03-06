@@ -2,6 +2,8 @@
 
 Автоматическое исполнение торговых сигналов через API бирж.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/goldinilya-debug/cryptotraderai&root-dir=trading-bot)
+
 ## Поддерживаемые биржи
 
 - ✅ **BingX** (рекомендуется, есть демо-режим)
