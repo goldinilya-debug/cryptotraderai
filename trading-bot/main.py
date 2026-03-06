@@ -10,6 +10,9 @@ import os
 import logging
 from datetime import datetime
 import json
+import requests
+import threading
+import time
 
 # Настройка логирования
 logging.basicConfig(
@@ -55,6 +58,80 @@ EXCHANGE_CONFIG = {
         'options': {'defaultType': 'spot'}
     }
 }
+
+# ==================== TELEGRAM УВЕДОМЛЕНИЯ ====================
+
+class TelegramNotifier:
+    """Отправка уведомлений в Telegram"""
+    
+    def __init__(self):
+        self.token = os.getenv('TELEGRAM_BOT_TOKEN', '')
+        self.chat_id = os.getenv('TELEGRAM_CHAT_ID', '')
+        self.enabled = bool(self.token and self.chat_id)
+        
+    def send_message(self, message: str, parse_mode='HTML'):
+        """Отправить сообщение в Telegram"""
+        if not self.enabled:
+            logger.warning("Telegram not configured")
+            return False
+            
+        try:
+            url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+            payload = {
+                'chat_id': self.chat_id,
+                'text': message,
+                'parse_mode': parse_mode,
+                'disable_web_page_preview': True
+            }
+            response = requests.post(url, json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                logger.info(f"Telegram message sent: {message[:50]}...")
+                return True
+            else:
+                logger.error(f"Telegram error: {response.text}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Failed to send Telegram: {e}")
+            return False
+    
+    def send_trade_opened(self, pair: str, direction: str, entry: float, amount: float, stop: float = None, take: float = None):
+        """Уведомление об открытии сделки"""
+        emoji = "🟢" if direction == "LONG" else "🔴"
+        message = f"{emoji} <b>СДЕЛКА ОТКРЫТА</b>\n\n"
+        message += f"<b>Пара:</b> {pair}\n"
+        message += f"<b>Направление:</b> {direction}\n"
+        message += f"<b>Вход:</b> ${entry:,.2f}\n"
+        message += f"<b>Количество:</b> {amount:.6f}\n"
+        if stop:
+            message += f"<b>Stop Loss:</b> ${stop:,.2f}\n"
+        if take:
+            message += f"<b>Take Profit:</b> ${take:,.2f}\n"
+        message += f"\n⏳ Ожидаем результат..."
+        return self.send_message(message)
+    
+    def send_trade_closed(self, pair: str, direction: str, entry: float, exit_price: float, pnl: float, status: str):
+        """Уведомление о закрытии сделки"""
+        emoji = "💰" if pnl > 0 else "🛑"
+        pnl_percent = ((exit_price - entry) / entry * 100) if direction == "LONG" else ((entry - exit_price) / entry * 100)
+        
+        message = f"{emoji} <b>СДЕЛКА ЗАКРЫТА</b>\n\n"
+        message += f"<b>Пара:</b> {pair}\n"
+        message += f"<b>Направление:</b> {direction}\n"
+        message += f"<b>Вход:</b> ${entry:,.2f}\n"
+        message += f"<b>Выход:</b> ${exit_price:,.2f}\n"
+        message += f"<b>Результат:</b> ${pnl:,.2f} ({pnl_percent:+.2f}%)\n"
+        message += f"<b>Статус:</b> {status}"
+        return self.send_message(message)
+    
+    def send_alert(self, title: str, message: str):
+        """Срочное уведомление"""
+        text = f"⚠️ <b>{title}</b>\n\n{message}"
+        return self.send_message(text)
+
+# Инициализация
+telegram = TelegramNotifier()
 
 # ==================== МОДЕЛИ ДАННЫХ ====================
 
@@ -191,6 +268,16 @@ class TradingEngine:
             )
             
             logger.info(f"Ордер создан: {order['id']}")
+            
+            # Отправляем уведомление в Telegram
+            telegram.send_trade_opened(
+                pair=signal.pair,
+                direction=signal.direction,
+                entry=order.get('average', signal.entry),
+                amount=float(amount),
+                stop=signal.stop_loss,
+                take=signal.take_profit
+            )
             
             # TODO: Установить TP/SL отдельными ордерами если указаны
             
@@ -351,6 +438,53 @@ async def list_exchanges():
             "testnet": config.get('options', {}).get('testnet', False)
         })
     return {"exchanges": available}
+
+
+# ==================== TELEGRAM ENDPOINTS ====================
+
+@app.get("/telegram/status")
+async def telegram_status():
+    """Статус подключения Telegram"""
+    return {
+        "enabled": telegram.enabled,
+        "token_configured": bool(telegram.token),
+        "chat_id_configured": bool(telegram.chat_id),
+        "chat_id": telegram.chat_id if telegram.chat_id else None
+    }
+
+
+@app.post("/telegram/test")
+async def telegram_test(authorized: bool = Depends(verify_webhook_secret)):
+    """Отправить тестовое сообщение в Telegram"""
+    if not telegram.enabled:
+        raise HTTPException(status_code=400, detail="Telegram not configured")
+    
+    success = telegram.send_message(
+        "🤖 <b>CryptoTraderAI Bot</b>\n\n"
+        "✅ Подключение успешно!\n"
+        "Я готов отправлять уведомления о сделках.\n\n"
+        "📊 Жду сигналов..."
+    )
+    
+    if success:
+        return {"success": True, "message": "Test message sent"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send test message")
+
+
+@app.post("/telegram/set-chat-id")
+async def set_telegram_chat_id(chat_id: str, authorized: bool = Depends(verify_webhook_secret)):
+    """Установить Chat ID для Telegram"""
+    os.environ['TELEGRAM_CHAT_ID'] = chat_id
+    telegram.chat_id = chat_id
+    telegram.enabled = bool(telegram.token and telegram.chat_id)
+    
+    # Отправляем тестовое сообщение
+    if telegram.enabled:
+        telegram.send_message(f"✅ Chat ID установлен: {chat_id}")
+    
+    return {"success": True, "chat_id": chat_id, "enabled": telegram.enabled}
+
 
 # ==================== ЗАПУСК ====================
 
