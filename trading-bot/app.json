@@ -1,0 +1,33 @@
+{
+  "name": "cryptotraderai-bot",
+  "env": {
+    "BINGX_API_KEY": {
+      "description": "BingX API Key for demo trading",
+      "required": true
+    },
+    "BINGX_API_SECRET": {
+      "description": "BingX API Secret",
+      "required": true
+    },
+    "BINGX_SANDBOX": {
+      "description": "Enable demo trading mode",
+      "value": "true"
+    },
+    "WEBHOOK_SECRET": {
+      "description": "Secret for webhook verification",
+      "generator": "secret"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "stack": "heroku-22"
+}
