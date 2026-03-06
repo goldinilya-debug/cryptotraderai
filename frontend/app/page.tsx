@@ -389,6 +389,36 @@ export default function Dashboard() {
               {lang === 'ru' ? '🇷🇺 RU' : '🇬🇧 EN'}
             </button>
             <a 
+              href="/stats"
+              style={{
+                background: 'transparent',
+                border: '1px solid #00d4ff',
+                color: '#00d4ff',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                textDecoration: 'none',
+                fontWeight: 'bold'
+              }}
+            >
+              📊 {lang === 'ru' ? 'Статистика' : 'Stats'}
+            </a>
+            <a 
+              href="/strategy"
+              style={{
+                background: 'transparent',
+                border: '1px solid #10b981',
+                color: '#10b981',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                textDecoration: 'none',
+                fontWeight: 'bold'
+              }}
+            >
+              ⚡ {lang === 'ru' ? 'Стратегия' : 'Strategy'}
+            </a>
+            <a 
               href="/sniper"
               style={{
                 background: 'linear-gradient(135deg, #ff4757, #ff6348)',
