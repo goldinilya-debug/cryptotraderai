@@ -41,7 +41,7 @@ EXCHANGE_CONFIG = {
     'bingx': {
         'apiKey': os.getenv('BINGX_API_KEY'),
         'secret': os.getenv('BINGX_API_SECRET'),
-        'options': {'defaultType': 'spot'},
+        'options': {'defaultType': 'swap'},  # Фьючерсы perpetual
         'sandbox': os.getenv('BINGX_SANDBOX', 'false').lower() == 'true'
     },
     'binance': {
@@ -265,6 +265,56 @@ async def receive_signal(
     ```
     """
     try:
+        # Автоматическая валидация сигнала
+        auto_trading_enabled = os.getenv('AUTO_TRADING_ENABLED', 'false').lower() == 'true'
+        
+        if auto_trading_enabled and not signal.dry_run:
+            # Критерии для автовхода
+            criteria_met = []
+            
+            # 1. Confidence >= 85%
+            if signal.confidence >= 85:
+                criteria_met.append(f"✅ Confidence: {signal.confidence}%")
+            else:
+                criteria_met.append(f"❌ Confidence: {signal.confidence}% (need 85%+)")
+            
+            # 2. R:R >= 1:2
+            if signal.take_profit and signal.stop_loss:
+                risk = abs(signal.entry - signal.stop_loss)
+                reward = abs(signal.take_profit - signal.entry)
+                rr_ratio = reward / risk if risk > 0 else 0
+                
+                if rr_ratio >= 2.0:
+                    criteria_met.append(f"✅ R:R = 1:{rr_ratio:.2f}")
+                else:
+                    criteria_met.append(f"❌ R:R = 1:{rr_ratio:.2f} (need 1:2+)")
+            else:
+                criteria_met.append("❌ No TP/SL set")
+            
+            # 3. Риск <= 1%
+            if signal.risk_percent <= 1.0:
+                criteria_met.append(f"✅ Risk: {signal.risk_percent}%")
+            else:
+                criteria_met.append(f"❌ Risk: {signal.risk_percent}% (need <=1%)")
+            
+            # Проверяем все критерии
+            all_passed = all('✅' in c for c in criteria_met)
+            
+            if not all_passed:
+                logger.info(f"Auto-trading: Signal rejected\n" + "\n".join(criteria_met))
+                return TradeResult(
+                    success=False,
+                    pair=signal.pair,
+                    direction=signal.direction,
+                    amount=0,
+                    price=0,
+                    status="REJECTED",
+                    timestamp=datetime.utcnow().isoformat(),
+                    error=f"Auto-trading criteria not met:\n" + "\n".join(criteria_met)
+                )
+            
+            logger.info(f"Auto-trading: Signal approved\n" + "\n".join(criteria_met))
+        
         engine = TradingEngine(signal.exchange)
         result = engine.execute_signal(signal)
         
