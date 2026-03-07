@@ -4,75 +4,104 @@ import Sidebar from '@/components/Sidebar'
 import { LineChart, Play, Settings, Download } from 'lucide-react'
 import { useState } from 'react'
 
+const styles = {
+  container: { padding: '24px' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
+  title: { margin: 0, fontSize: '28px', fontWeight: 'bold' },
+  subtitle: { margin: '8px 0 0 0', color: '#6b7280' },
+  buttonGroup: { display: 'flex', gap: '12px' },
+  button: { padding: '8px 16px', background: '#13131f', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: 'none', color: '#fff', cursor: 'pointer' },
+  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' },
+  statCard: { background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e' },
+  statLabel: { fontSize: '14px', color: '#6b7280', marginBottom: '4px' },
+  statValue: { fontSize: '24px', fontWeight: 'bold' },
+  configCard: { background: '#13131f', padding: '24px', borderRadius: '12px', border: '1px solid #2a2a3e', marginBottom: '24px' },
+  configHeader: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' },
+  configGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' },
+  inputGroup: { marginBottom: '16px' },
+  label: { display: 'block', fontSize: '14px', color: '#6b7280', marginBottom: '8px' },
+  select: { width: '100%', padding: '8px 12px', background: '#0a0a0f', border: '1px solid #2a2a3e', borderRadius: '8px', color: '#fff' },
+  runButton: { marginTop: '16px', padding: '12px 24px', background: 'linear-gradient(135deg, #00d4ff, #7c3aed)', borderRadius: '8px', border: 'none', color: '#fff', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' },
+  tableCard: { background: '#13131f', borderRadius: '12px', border: '1px solid #2a2a3e', overflow: 'hidden' },
+  table: { width: '100%', borderCollapse: 'collapse' as const },
+  th: { textAlign: 'left' as const, padding: '16px', fontSize: '14px', color: '#6b7280', borderBottom: '1px solid #2a2a3e', background: '#0a0a0f' },
+  td: { padding: '16px', borderBottom: '1px solid #2a2a3e' },
+  badge: (isLong: boolean) => ({ padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', background: isLong ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: isLong ? '#10b981' : '#ef4444' }),
+}
+
 export default function BacktestPage() {
   const [running, setRunning] = useState(false)
 
+  const trades = [
+    { date: '2026-03-07', pair: 'BTC/USDT', dir: 'LONG', entry: 71235, exit: 72500, result: '+1.8%', win: true },
+    { date: '2026-03-06', pair: 'ETH/USDT', dir: 'SHORT', entry: 2100, exit: 1989, result: '+5.3%', win: true },
+    { date: '2026-03-05', pair: 'SOL/USDT', dir: 'LONG', entry: 145, exit: 138, result: '-4.8%', win: false },
+  ]
+
   return (
     <Sidebar>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div style={styles.container}>
+        <div style={styles.header}>
           <div>
-            <h1 className="text-2xl font-bold">Strategy Backtest</h1>
-            <p className="text-gray-500 mt-1">Test your strategies on historical data</p>
+            <h1 style={styles.title}>Strategy Backtest</h1>
+            <p style={styles.subtitle}>Test your strategies on historical data</p>
           </div>
-          <div className="flex gap-3">
-            <button className="px-4 py-2 bg-[#13131f] rounded-lg flex items-center gap-2 hover:bg-[#1c1c2e]">
+          <div style={styles.buttonGroup}>
+            <button style={styles.button}>
               <Settings size={16} />
               Settings
             </button>
-            <button className="px-4 py-2 bg-[#13131f] rounded-lg flex items-center gap-2 hover:bg-[#1c1c2e]">
+            <button style={styles.button}>
               <Download size={16} />
               Export
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#13131f] p-5 rounded-xl border border-[#2a2a3e]">
-            <p className="text-sm text-gray-500 mb-1">Total Trades</p>
-            <p className="text-2xl font-bold">156</p>
+        <div style={styles.statsGrid}>
+          <div style={styles.statCard}>
+            <p style={styles.statLabel}>Total Trades</p>
+            <p style={styles.statValue}>156</p>
           </div>
-          <div className="bg-[#13131f] p-5 rounded-xl border border-[#2a2a3e]">
-            <p className="text-sm text-gray-500 mb-1">Win Rate</p>
-            <p className="text-2xl font-bold text-green-500">68.5%</p>
+          <div style={styles.statCard}>
+            <p style={styles.statLabel}>Win Rate</p>
+            <p style={{ ...styles.statValue, color: '#10b981' }}>68.5%</p>
           </div>
-          <div className="bg-[#13131f] p-5 rounded-xl border border-[#2a2a3e]">
-            <p className="text-sm text-gray-500 mb-1">Profit Factor</p>
-            <p className="text-2xl font-bold text-green-500">2.4</p>
+          <div style={styles.statCard}>
+            <p style={styles.statLabel}>Profit Factor</p>
+            <p style={{ ...styles.statValue, color: '#10b981' }}>2.4</p>
           </div>
-          <div className="bg-[#13131f] p-5 rounded-xl border border-[#2a2a3e]">
-            <p className="text-sm text-gray-500 mb-1">Net Profit</p>
-            <p className="text-2xl font-bold text-green-500">+24.8%</p>
+          <div style={styles.statCard}>
+            <p style={styles.statLabel}>Net Profit</p>
+            <p style={{ ...styles.statValue, color: '#10b981' }}>+24.8%</p>
           </div>
         </div>
 
-        <div className="bg-[#13131f] p-6 rounded-xl border border-[#2a2a3e] mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold flex items-center gap-2">
-              <LineChart className="text-[#00d4ff]" />
-              Backtest Configuration
-            </h2>
+        <div style={styles.configCard}>
+          <div style={styles.configHeader}>
+            <LineChart color="#00d4ff" />
+            <span style={{ fontWeight: 'bold' }}>Backtest Configuration</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm text-gray-500 block mb-2">Strategy</label>
-              <select className="w-full bg-[#0a0a0f] border border-[#2a2a3e] rounded-lg px-4 py-2 text-white">
+          <div style={styles.configGrid}>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Strategy</label>
+              <select style={styles.select}>
                 <option>SMC + Kill Zones</option>
                 <option>Wyckoff Accumulation</option>
                 <option>Fibonacci Retracement</option>
               </select>
             </div>
-            <div>
-              <label className="text-sm text-gray-500 block mb-2">Timeframe</label>
-              <select className="w-full bg-[#0a0a0f] border border-[#2a2a3e] rounded-lg px-4 py-2 text-white">
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Timeframe</label>
+              <select style={styles.select}>
                 <option>1H</option>
                 <option>4H</option>
                 <option>1D</option>
               </select>
             </div>
-            <div>
-              <label className="text-sm text-gray-500 block mb-2">Period</label>
-              <select className="w-full bg-[#0a0a0f] border border-[#2a2a3e] rounded-lg px-4 py-2 text-white">
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Period</label>
+              <select style={styles.select}>
                 <option>Last 30 days</option>
                 <option>Last 90 days</option>
                 <option>Last 6 months</option>
@@ -81,44 +110,36 @@ export default function BacktestPage() {
           </div>
           <button 
             onClick={() => setRunning(!running)}
-            className="mt-4 px-6 py-3 bg-gradient-to-r from-[#00d4ff] to-[#7c3aed] rounded-lg font-bold flex items-center gap-2 hover:opacity-90"
+            style={styles.runButton}
           >
             <Play size={18} />
             {running ? 'Running...' : 'Run Backtest'}
           </button>
         </div>
 
-        <div className="bg-[#13131f] rounded-xl border border-[#2a2a3e] overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-[#0a0a0f]">
+        <div style={styles.tableCard}>
+          <table style={styles.table}>
+            <thead>
               <tr>
-                <th className="text-left p-4 text-sm text-gray-500">Date</th>
-                <th className="text-left p-4 text-sm text-gray-500">Pair</th>
-                <th className="text-left p-4 text-sm text-gray-500">Direction</th>
-                <th className="text-left p-4 text-sm text-gray-500">Entry</th>
-                <th className="text-left p-4 text-sm text-gray-500">Exit</th>
-                <th className="text-left p-4 text-sm text-gray-500">Result</th>
+                <th style={styles.th}>Date</th>
+                <th style={styles.th}>Pair</th>
+                <th style={styles.th}>Direction</th>
+                <th style={styles.th}>Entry</th>
+                <th style={styles.th}>Exit</th>
+                <th style={styles.th}>Result</th>
               </tr>
             </thead>
             <tbody>
-              {[
-                { date: '2026-03-07', pair: 'BTC/USDT', dir: 'LONG', entry: 71235, exit: 72500, result: '+1.8%', win: true },
-                { date: '2026-03-06', pair: 'ETH/USDT', dir: 'SHORT', entry: 2100, exit: 1989, result: '+5.3%', win: true },
-                { date: '2026-03-05', pair: 'SOL/USDT', dir: 'LONG', entry: 145, exit: 138, result: '-4.8%', win: false },
-              ].map((trade, i) => (
-                <tr key={i} className="border-t border-[#2a2a3e]">
-                  <td className="p-4">{trade.date}</td>
-                  <td className="p-4 font-bold">{trade.pair}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      trade.dir === 'LONG' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
-                    }`}>
-                      {trade.dir}
-                    </span>
+              {trades.map((trade, i) => (
+                <tr key={i}>
+                  <td style={styles.td}>{trade.date}</td>
+                  <td style={{ ...styles.td, fontWeight: 'bold' }}>{trade.pair}</td>
+                  <td style={styles.td}>
+                    <span style={styles.badge(trade.dir === 'LONG')}>{trade.dir}</span>
                   </td>
-                  <td className="p-4">${trade.entry.toLocaleString()}</td>
-                  <td className="p-4">${trade.exit.toLocaleString()}</td>
-                  <td className={`p-4 font-bold ${trade.win ? 'text-green-500' : 'text-red-500'}`}>
+                  <td style={styles.td}>${trade.entry.toLocaleString()}</td>
+                  <td style={styles.td}>${trade.exit.toLocaleString()}</td>
+                  <td style={{ ...styles.td, fontWeight: 'bold', color: trade.win ? '#10b981' : '#ef4444' }}>
                     {trade.result}
                   </td>
                 </tr>

@@ -1,60 +1,78 @@
 'use client'
 
 import Sidebar from '@/components/Sidebar'
-import { Activity, Filter, Bell, Search } from 'lucide-react'
+import { Activity, Filter, Bell } from 'lucide-react'
+
+const styles = {
+  container: { padding: '24px' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
+  title: { margin: 0, fontSize: '28px', fontWeight: 'bold' },
+  subtitle: { margin: '8px 0 0 0', color: '#6b7280' },
+  buttonGroup: { display: 'flex', gap: '12px' },
+  button: { padding: '8px 16px', background: '#13131f', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: 'none', color: '#fff', cursor: 'pointer' },
+  signalCard: { background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' },
+  signalLeft: { display: 'flex', alignItems: 'center', gap: '16px' },
+  signalIcon: (isLong: boolean) => ({ width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isLong ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)' }),
+  signalTitle: { display: 'flex', alignItems: 'center', gap: '8px' },
+  pair: { fontWeight: 'bold', fontSize: '18px' },
+  badge: (isLong: boolean) => ({ padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', background: isLong ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: isLong ? '#10b981' : '#ef4444' }),
+  signalInfo: { fontSize: '14px', color: '#6b7280', marginTop: '4px' },
+  signalRight: { textAlign: 'right' as const },
+  confidence: { fontSize: '24px', fontWeight: 'bold' },
+  time: { fontSize: '14px', color: '#6b7280' },
+}
 
 export default function SignalsPage() {
+  const signals = [
+    { pair: 'BTC/USDT', direction: 'LONG', entry: 71235, tp: 74403, sl: 69651, confidence: 88, time: '2h ago' },
+    { pair: 'ETH/USDT', direction: 'SHORT', entry: 1989, tp: 1836, sl: 2036, confidence: 92, time: '4h ago' },
+    { pair: 'SOL/USDT', direction: 'LONG', entry: 145.2, tp: 158.5, sl: 138.9, confidence: 85, time: '6h ago' },
+  ]
+
   return (
     <Sidebar>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div style={styles.container}>
+        <div style={styles.header}>
           <div>
-            <h1 className="text-2xl font-bold">Trading Signals</h1>
-            <p className="text-gray-500 mt-1">AI-generated buy/sell signals</p>
+            <h1 style={styles.title}>Trading Signals</h1>
+            <p style={styles.subtitle}>AI-generated buy/sell signals</p>
           </div>
-          <div className="flex gap-3">
-            <button className="px-4 py-2 bg-[#13131f] rounded-lg flex items-center gap-2 hover:bg-[#1c1c2e]">
+          <div style={styles.buttonGroup}>
+            <button style={styles.button}>
               <Filter size={16} />
               Filter
             </button>
-            <button className="px-4 py-2 bg-[#13131f] rounded-lg flex items-center gap-2 hover:bg-[#1c1c2e]">
+            <button style={styles.button}>
               <Bell size={16} />
               Alerts
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          {[
-            { pair: 'BTC/USDT', direction: 'LONG', entry: 71235, tp: 74403, sl: 69651, confidence: 88, time: '2h ago' },
-            { pair: 'ETH/USDT', direction: 'SHORT', entry: 1989, tp: 1836, sl: 2036, confidence: 92, time: '4h ago' },
-            { pair: 'SOL/USDT', direction: 'LONG', entry: 145.2, tp: 158.5, sl: 138.9, confidence: 85, time: '6h ago' },
-          ].map((signal, i) => (
-            <div key={i} className="bg-[#13131f] p-5 rounded-xl border border-[#2a2a3e] flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  signal.direction === 'LONG' ? 'bg-green-500/20' : 'bg-red-500/20'
-                }`}>
-                  <Activity className={signal.direction === 'LONG' ? 'text-green-500' : 'text-red-500'} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-lg">{signal.pair}</span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                      signal.direction === 'LONG' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
-                    }`}>
-                      {signal.direction}
-                    </span>
+        <div>
+          {signals.map((signal, i) => {
+            const isLong = signal.direction === 'LONG'
+            return (
+              <div key={i} style={styles.signalCard}>
+                <div style={styles.signalLeft}>
+                  <div style={styles.signalIcon(isLong)}>
+                    <Activity color={isLong ? '#10b981' : '#ef4444'} />
                   </div>
-                  <p className="text-sm text-gray-500">Entry: ${signal.entry.toLocaleString()} · TP: ${signal.tp.toLocaleString()} · SL: ${signal.sl.toLocaleString()}</p>
+                  <div>
+                    <div style={styles.signalTitle}>
+                      <span style={styles.pair}>{signal.pair}</span>
+                      <span style={styles.badge(isLong)}>{signal.direction}</span>
+                    </div>
+                    <p style={styles.signalInfo}>Entry: ${signal.entry.toLocaleString()} · TP: ${signal.tp.toLocaleString()} · SL: ${signal.sl.toLocaleString()}</p>
+                  </div>
+                </div>
+                <div style={styles.signalRight}>
+                  <p style={styles.confidence}>{signal.confidence}%</p>
+                  <p style={styles.time}>{signal.time}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold">{signal.confidence}%</p>
-                <p className="text-sm text-gray-500">{signal.time}</p>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </Sidebar>
