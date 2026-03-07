@@ -420,6 +420,21 @@ export default function Dashboard() {
               ⚡ {lang === 'ru' ? 'Стратегия' : 'Strategy'}
             </a>
             <a 
+              href="/tradingview"
+              style={{
+                background: 'transparent',
+                border: '1px solid #3b82f6',
+                color: '#3b82f6',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                textDecoration: 'none',
+                fontWeight: 'bold'
+              }}
+            >
+              📊 TradingView
+            </a>
+            <a 
               href="/sniper"
               style={{
                 background: 'linear-gradient(135deg, #ff4757, #ff6348)',

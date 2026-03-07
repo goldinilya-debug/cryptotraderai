@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import signals, analysis, performance, killzones, ml, ml_settings, sniper
+from app.routers import signals, analysis, performance, killzones, ml, ml_settings, sniper, tradingview
 
 app = FastAPI(
     title="CryptoTraderAI API",
@@ -26,6 +26,7 @@ app.include_router(killzones.router, prefix="/api/killzones", tags=["killzones"]
 app.include_router(ml.router, prefix="/api/ml", tags=["ml"])
 app.include_router(ml_settings.router, prefix="/api/ml/settings", tags=["ml-settings"])
 app.include_router(sniper.router, prefix="/api/sniper", tags=["sniper"])
+app.include_router(tradingview.router, prefix="", tags=["tradingview"])
 
 @app.get("/")
 async def root():
