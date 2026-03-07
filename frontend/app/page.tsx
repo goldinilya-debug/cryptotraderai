@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import SignalAnalysisCardModal from '@/components/SignalAnalysisCardModal'
 
 const translations = {
   ru: {
@@ -663,46 +664,43 @@ export default function Dashboard() {
           zIndex: 1000, padding: '20px'
         }}>
           <div style={{
-            background: '#13131f', borderRadius: '16px', maxWidth: '600px', width: '100%',
-            maxHeight: '80vh', overflow: 'auto', border: '1px solid #1c1c2e'
+            background: '#13131f', borderRadius: '16px', maxWidth: '700px', width: '100%',
+            maxHeight: '85vh', overflow: 'auto', border: '1px solid #1c1c2e'
           }}>
-            <div style={{ padding: '24px', borderBottom: '1px solid #1c1c2e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ 
+              padding: '24px', 
+              borderBottom: '1px solid #1c1c2e', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              background: '#0a0a0f'
+            }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '20px' }}>📊 {t.signalAnalysis}</h2>
-                <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>{selectedSignal?.pair} • {selectedSignal?.direction}</p>
+                <h2 style={{ margin: 0, fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  📊 {t.signalAnalysis}
+                </h2>
+                <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
+                  Подробный разбор сделки по методологии Wyckoff + SMC
+                </p>
               </div>
-              <button onClick={closeAnalysis} style={{ background: 'transparent', border: 'none', color: '#6b7280', fontSize: '24px', cursor: 'pointer' }}>{t.close}</button>
+              <button 
+                onClick={closeAnalysis} 
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none', 
+                  color: '#6b7280', 
+                  fontSize: '24px', 
+                  cursor: 'pointer',
+                  padding: '4px 8px',
+                  borderRadius: '6px'
+                }}
+              >
+                {t.close}
+              </button>
             </div>
 
-            <div style={{ padding: '24px' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>📈 {t.wyckoffAnalysis}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.wyckoff : selectedSignal?.analysis}</p>
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🎯 {t.smartMoneyConcepts}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.smc : '-'}</p>
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⏰ {t.killZoneTiming}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.killZone : '-'}</p>
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>🚪 {t.entryLogic}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.entry : '-'}</p>
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>⚠️ {t.riskManagement}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.risk : '-'}</p>
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#00d4ff' }}>💰 {t.rewardTargets}</h3>
-                <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: '1.6' }}>{typeof selectedSignal?.analysis === 'object' ? selectedSignal?.analysis?.reward : '-'}</p>
-              </div>
-              <div style={{ background: 'rgba(0, 212, 255, 0.1)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(0, 212, 255, 0.3)' }}>
-                <p style={{ margin: 0, fontSize: '14px', color: '#00d4ff' }}>✨ {t.aiConfidence}: <strong>{selectedSignal?.confidence}%</strong></p>
-              </div>
-            </div>
+            {/* Signal Analysis Card */}
+            <SignalAnalysisCardModal signal={selectedSignal} />
           </div>
         </div>
       )}
