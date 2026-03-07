@@ -163,12 +163,30 @@ async def list_signals(
     pair: Optional[str] = None,
     limit: int = 50
 ):
-    """List trading signals with optional filters"""
-    signals = DEMO_SIGNALS
-    if pair:
-        signals = [s for s in signals if s["pair"] == pair]
+    """List trading signals with optional filters - DYNAMIC GENERATION"""
+    
+    # Generate fresh signals for all pairs
+    pairs_to_generate = [pair] if pair else VALID_PAIRS[:5]  # Max 5 pairs
+    signals = []
+    
+    for p in pairs_to_generate:
+        try:
+            signal = await generate_signal(
+                pair=p,
+                timeframe="4H",
+                exchange="binance"
+            )
+            if signal.get("status") != "REJECTED":
+                signals.append(signal)
+        except Exception as e:
+            print(f"Failed to generate signal for {p}: {e}")
+            # Fallback to demo signal for this pair
+            demo = next((s for s in DEMO_SIGNALS if s["pair"] == p), None)
+            if demo:
+                signals.append(demo)
+    
     if status:
-        signals = [s for s in signals if s["status"] == status]
+        signals = [s for s in signals if s.get("status") == status]
     
     return {
         "signals": signals[:limit],
@@ -180,11 +198,27 @@ async def list_signals(
 
 @router.get("/active", response_model=SignalListResponse)
 async def get_active_signals():
-    """Get currently active signals"""
-    active = [s for s in DEMO_SIGNALS if s["status"] == "ACTIVE"]
+    """Get currently active signals - DYNAMIC GENERATION"""
+    
+    signals = []
+    for p in VALID_PAIRS[:5]:  # Generate for top 5 pairs
+        try:
+            signal = await generate_signal(
+                pair=p,
+                timeframe="4H",
+                exchange="binance"
+            )
+            if signal.get("status") not in ["REJECTED", "CLOSED"]:
+                signals.append(signal)
+        except Exception as e:
+            print(f"Failed to generate signal for {p}: {e}")
+            demo = next((s for s in DEMO_SIGNALS if s["pair"] == p and s["status"] == "ACTIVE"), None)
+            if demo:
+                signals.append(demo)
+    
     return {
-        "signals": active,
-        "total": len(active),
+        "signals": signals,
+        "total": len(signals),
         "win_rate": 68.5,
         "wins": 87,
         "losses": 40
