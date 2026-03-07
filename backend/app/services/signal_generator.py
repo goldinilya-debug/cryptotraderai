@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from datetime import datetime
 from groq import Groq
 from dotenv import load_dotenv
@@ -11,6 +11,59 @@ load_dotenv()
 
 # Initialize Groq client
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+# Correlated pairs - these should not have opposite signals
+CORRELATED_PAIRS = {
+    "BTC": ["BTC/USDT", "BTC/USD", "XBT/USDT"],
+    "ETH": ["ETH/USDT", "ETH/USD", "ETH/BTC"],
+    "ALT": ["SOL/USDT", "AVAX/USDT", "DOT/USDT", "LINK/USDT"]  # Alts follow BTC/ETH
+}
+
+# Store recent signals for correlation check
+_recent_signals: Dict[str, Dict] = {}
+
+def check_correlation_conflict(new_pair: str, new_direction: str) -> Optional[str]:
+    """Check if new signal conflicts with existing correlated pair signals
+    
+    Returns:
+        Conflict message if there's a conflict, None otherwise
+    """
+    global _recent_signals
+    
+    # Determine which group the new pair belongs to
+    new_group = None
+    for group, pairs in CORRELATED_PAIRS.items():
+        if any(p in new_pair for p in pairs):
+            new_group = group
+            break
+    
+    if not new_group:
+        return None
+    
+    # Check existing signals in the same group
+    for pair, signal in _recent_signals.items():
+        # Skip if same pair
+        if pair == new_pair:
+            continue
+            
+        # Check if pair is in same correlation group
+        if any(p in pair for p in CORRELATED_PAIRS.get(new_group, [])):
+            existing_direction = signal.get("direction")
+            
+            # Conflict: opposite directions on correlated pairs
+            if existing_direction and existing_direction != new_direction:
+                return f"Correlation conflict: {pair} is {existing_direction}, cannot open {new_direction} on {new_pair}"
+    
+    return None
+
+def register_signal(pair: str, signal: Dict):
+    """Register signal for correlation tracking"""
+    global _recent_signals
+    _recent_signals[pair] = {
+        "direction": signal.get("direction"),
+        "timestamp": datetime.utcnow(),
+        "kill_zone": signal.get("kill_zone")
+    }
 
 SIGNAL_GENERATION_PROMPT = """You are an expert cryptocurrency trading analyst specializing in:
 - Wyckoff Method (accumulation, markup, distribution, markdown phases)
@@ -208,6 +261,17 @@ ML INSIGHTS:
         signal_data["real_time_data"] = True
         signal_data["market_price"] = current_price
         signal_data["price_change_24h"] = price_change_24h
+        
+        # Check correlation conflict before recording
+        conflict = check_correlation_conflict(pair, signal_data.get("direction", ""))
+        if conflict:
+            print(f"Correlation check failed: {conflict}")
+            signal_data["status"] = "REJECTED"
+            signal_data["rejection_reason"] = conflict
+            signal_data["confidence"] = 0  # Invalidate signal
+        else:
+            # Register signal for correlation tracking
+            register_signal(pair, signal_data)
         
         # Record in ML system
         signal_ml.record_signal(signal_data)
