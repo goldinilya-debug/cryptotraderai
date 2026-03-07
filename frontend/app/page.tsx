@@ -453,7 +453,7 @@ export default function Dashboard() {
               🎯 {lang === 'ru' ? 'Снайпер' : 'Sniper'}
             </a>
             <a 
-              href="/settings"
+              href="/ml"
               style={{
                 background: 'transparent',
                 border: '1px solid #6b7280',
@@ -461,10 +461,13 @@ export default function Dashboard() {
                 padding: '8px 16px',
                 borderRadius: '6px',
                 fontSize: '12px',
-                textDecoration: 'none'
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              {t.mlSettings}
+              🧠 {lang === 'ru' ? 'ML' : 'ML'}
             </a>
           </div>
         </div>
