@@ -453,7 +453,7 @@ export default function Dashboard() {
               🎯 {lang === 'ru' ? 'Снайпер' : 'Sniper'}
             </a>
             <a 
-              href="/telegram"
+              href="/profile"
               style={{
                 background: 'transparent',
                 border: '1px solid #6b7280',
@@ -467,7 +467,7 @@ export default function Dashboard() {
                 gap: '4px'
               }}
             >
-              💬 TG
+              👤 Профиль
             </a>
           </div>
         </div>
