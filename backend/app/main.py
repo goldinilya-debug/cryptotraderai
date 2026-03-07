@@ -1,12 +1,28 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
 from app.routers import signals, analysis, performance, killzones, ml, ml_settings, sniper, tradingview, auth
+from app.services.signal_generator_dynamic import start_signal_generation
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start background tasks on startup"""
+    # Start signal generator in background
+    import asyncio
+    asyncio.create_task(start_signal_generation())
+    print("🚀 Signal generator started")
+    
+    yield
+    
+    # Cleanup on shutdown
+    print("👋 Shutting down...")
 
 app = FastAPI(
     title="CryptoTraderAI API",
-    description="AI-powered crypto trading signals API with ML + SMC Sniper + Multi-tenant",
-    version="3.0.0"
+    description="AI-powered crypto trading signals API with ML + SMC Sniper + Multi-tenant + Dynamic Signals",
+    version="3.1.0",
+    lifespan=lifespan
 )
 
 # CORS
