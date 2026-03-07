@@ -14,7 +14,10 @@ import {
   Layers, 
   MessageCircle,
   User,
-  Zap
+  Zap,
+  PieChart,
+  Settings,
+  Crosshair
 } from 'lucide-react'
 
 const menuItems = [
@@ -25,6 +28,10 @@ const menuItems = [
   { href: '/killzones', label: 'Kill Zones', icon: Clock },
   { href: '/fibzones', label: 'Fib Zones', icon: Target },
   { href: '/backtest', label: 'Backtest', icon: LineChart },
+  { href: '/stats', label: 'Statistics', icon: PieChart },
+  { href: '/strategy', label: 'Strategy', icon: Settings },
+  { href: '/sniper', label: 'Sniper', icon: Crosshair },
+  { href: '/footprint', label: 'Footprint', icon: Layers },
   { href: '/ml', label: 'ML Model', icon: Brain },
   { href: '/tradingview', label: 'TradingView', icon: Layers },
   { href: '/telegram', label: 'Telegram', icon: MessageCircle },

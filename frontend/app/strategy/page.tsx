@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Minus, Save, Play, ChevronDown, ChevronUp, Target, Shield, Zap, ArrowLeft, BarChart3 } from 'lucide-react'
-import Link from 'next/link'
+import Sidebar from '@/components/Sidebar'
+import { Plus, Minus, Save, Play, ChevronDown, ChevronUp, Target, Shield, Zap, BarChart3 } from 'lucide-react'
 
 interface StrategyCondition {
   id: string
@@ -41,8 +41,8 @@ const INDICATORS = [
 const OPERATORS = [
   { value: 'equals', label: '=' },
   { value: 'not_equals', label: '≠' },
-  { value: 'greater', label: '>' },
-  { value: 'less', label: '<' },
+  { value: 'greater', label: '\u003e' },
+  { value: 'less', label: '\u003c' },
   { value: 'greater_equal', label: '≥' },
   { value: 'less_equal', label: '≤' },
 ]
@@ -140,7 +140,7 @@ export default function StrategyPage() {
     <div style={{ 
       background: '#13131f', 
       borderRadius: '12px', 
-      border: '1px solid #1c1c2e',
+      border: '1px solid #2a2a3e',
       overflow: 'hidden'
     }}>
       <button
@@ -165,7 +165,7 @@ export default function StrategyPage() {
       </button>
       
       {expanded[id] && (
-        <div style={{ padding: '16px', borderTop: '1px solid #1c1c2e' }}>
+        <div style={{ padding: '16px', borderTop: '1px solid #2a2a3e' }}>
           {children}
         </div>
       )}
@@ -173,42 +173,24 @@ export default function StrategyPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#fff' }}>
-      {/* Header */}
-      <header style={{ 
-        borderBottom: '1px solid #1c1c2e', 
-        padding: '16px 24px',
-        background: '#13131f'
-      }}>
+    <Sidebar>
+      <div style={{ padding: '24px' }}>
+        {/* Header */}
         <div style={{ 
-          maxWidth: '1000px', 
-          margin: '0 auto',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          marginBottom: '24px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link href="/" style={{ 
-              color: '#6b7280', 
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}>
-              <ArrowLeft style={{ width: '16px', height: '16px' }} />
-              Назад
-            </Link>
-            
+          <div>
             <h1 style={{ 
-              fontSize: '20px', 
+              fontSize: '28px', 
               fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
+              margin: 0
             }}>
-              <Zap style={{ color: '#00d4ff' }} />
-              Конструктор Стратегий
+              Strategy Builder
             </h1>
+            <p style={{ color: '#6b7280', marginTop: '4px' }}>Create custom trading strategies</p>
           </div>
           
           <div style={{ display: 'flex', gap: '12px' }}>
@@ -229,7 +211,7 @@ export default function StrategyPage() {
               }}
             >
               <Play style={{ width: '16px', height: '16px' }} />
-              {isBacktesting ? 'Тестирование...' : 'Бэктест'}
+              {isBacktesting ? 'Testing...' : 'Backtest'}
             </button>
             
             <button
@@ -243,19 +225,16 @@ export default function StrategyPage() {
                 color: '#000',
                 border: 'none',
                 borderRadius: '8px',
-                fontWeight: 500,
+                fontWeight: 600,
                 cursor: 'pointer'
               }}
             >
               <Save style={{ width: '16px', height: '16px' }} />
-              Сохранить
+              Save
             </button>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Basic Settings */}
           <Section id="basic" title="Базовые настройки" icon={Shield}>
@@ -624,7 +603,7 @@ export default function StrategyPage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </Sidebar>
   )
 }
