@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
@@ -32,44 +31,174 @@ const menuItems = [
   { href: '/profile', label: 'Profile', icon: User },
 ]
 
+// Inline styles for static export
+const styles = {
+  container: {
+    display: 'flex',
+    minHeight: '100vh',
+    background: '#0a0a0f',
+  },
+  sidebar: {
+    width: '240px',
+    background: '#13131f',
+    borderRight: '1px solid #1c1c2e',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    position: 'fixed' as const,
+    height: '100vh',
+    overflowY: 'auto' as const,
+    zIndex: 50,
+  },
+  logo: {
+    padding: '20px',
+    borderBottom: '1px solid #1c1c2e',
+  },
+  logoLink: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    textDecoration: 'none',
+  },
+  logoIcon: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '8px',
+    background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoText: {
+    fontWeight: 'bold',
+    fontSize: '18px',
+    color: '#fff',
+  },
+  killzone: {
+    padding: '16px',
+    borderBottom: '1px solid #1c1c2e',
+  },
+  killzoneLabel: {
+    fontSize: '12px',
+    color: '#6b7280',
+    marginBottom: '8px',
+  },
+  killzoneBadge: {
+    padding: '10px 12px',
+    background: 'rgba(16, 185, 129, 0.1)',
+    borderRadius: '8px',
+    border: '1px solid #10b981',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  killzoneDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: '#10b981',
+  },
+  killzoneText: {
+    color: '#10b981',
+    fontWeight: 'bold',
+    fontSize: '14px',
+  },
+  killzoneSub: {
+    fontSize: '11px',
+    color: '#6b7280',
+    marginTop: '8px',
+  },
+  nav: {
+    flex: 1,
+    padding: '12px',
+  },
+  navItem: (isActive: boolean) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px 16px',
+    marginBottom: '4px',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    fontSize: '14px',
+    fontWeight: isActive ? '600' : '400',
+    color: isActive ? '#00d4ff' : '#9ca3af',
+    background: isActive ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
+    transition: 'all 0.2s',
+  }),
+  activeIndicator: {
+    marginLeft: 'auto',
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    background: '#00d4ff',
+  },
+  user: {
+    padding: '16px',
+    borderTop: '1px solid #1c1c2e',
+  },
+  userLink: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    textDecoration: 'none',
+  },
+  userAvatar: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+    fontSize: '14px',
+    color: '#fff',
+  },
+  userName: {
+    fontSize: '14px',
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  userStatus: {
+    fontSize: '12px',
+    color: '#6b7280',
+  },
+  main: {
+    flex: 1,
+    marginLeft: '240px',
+    minHeight: '100vh',
+  },
+}
+
 export default function Sidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return <div style={{ minHeight: '100vh', background: '#0a0a0f' }}>{children}</div>
-  }
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0f]">
+    <div style={styles.container}>
       {/* Sidebar */}
-      <aside className="w-60 bg-[#13131f] border-r border-[#1c1c2e] flex flex-col fixed h-screen overflow-y-auto z-50">
+      <aside style={styles.sidebar}>
         {/* Logo */}
-        <div className="p-5 border-b border-[#1c1c2e]">
-          <Link href="/dashboard" className="flex items-center gap-3 no-underline">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#00d4ff] to-[#7c3aed] flex items-center justify-center">
-              <Zap size={20} className="text-white" />
+        <div style={styles.logo}>
+          <Link href="/dashboard" style={styles.logoLink}>
+            <div style={styles.logoIcon}>
+              <Zap size={20} color="#fff" />
             </div>
-            <span className="font-bold text-lg text-white">CryptoTraderAI</span>
+            <span style={styles.logoText}>CryptoTraderAI</span>
           </Link>
         </div>
 
         {/* Kill Zone */}
-        <div className="p-4 border-b border-[#1c1c2e]">
-          <p className="text-xs text-gray-500 mb-2">Active Kill Zone</p>
-          <div className="px-3 py-2 bg-[#10b98120] rounded-lg border border-[#10b981] flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></span>
-            <span className="text-[#10b981] font-bold text-sm">NEW YORK</span>
+        <div style={styles.killzone}>
+          <p style={styles.killzoneLabel}>Active Kill Zone</p>
+          <div style={styles.killzoneBadge}>
+            <span style={styles.killzoneDot} />
+            <span style={styles.killzoneText}>NEW YORK</span>
           </div>
-          <p className="text-[11px] text-gray-500 mt-2">High volatility expected</p>
+          <p style={styles.killzoneSub}>High volatility expected</p>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3">
+        <nav style={styles.nav}>
           {menuItems.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
             const Icon = item.icon
@@ -78,36 +207,30 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-lg text-sm font-medium transition-all duration-200 no-underline ${
-                  isActive 
-                    ? 'text-[#00d4ff] bg-[rgba(0,212,255,0.1)]' 
-                    : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)]'
-                }`}
+                style={styles.navItem(isActive)}
               >
                 <Icon size={18} />
                 <span>{item.label}</span>
-                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00d4ff]"></span>}
+                {isActive && <span style={styles.activeIndicator} />}
               </Link>
             )
           })}
         </nav>
 
         {/* User */}
-        <div className="p-4 border-t border-[#1c1c2e]">
-          <Link href="/profile" className="flex items-center gap-3 no-underline">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#00d4ff] to-[#7c3aed] flex items-center justify-center text-white font-bold text-sm">
-              U
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-white">User</p>
-              <p className="text-xs text-gray-500">Connected</p>
+        <div style={styles.user}>
+          <Link href="/profile" style={styles.userLink}>
+            <div style={styles.userAvatar}>U</div>
+            <div>
+              <p style={styles.userName}>User</p>
+              <p style={styles.userStatus}>Connected</p>
             </div>
           </Link>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-60 min-h-screen">
+      <main style={styles.main}>
         {children}
       </main>
     </div>
