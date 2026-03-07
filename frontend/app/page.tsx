@@ -114,7 +114,7 @@ interface PriceData {
 interface Signal {
   id: string
   pair: string
-  direction: string
+  direction: 'LONG' | 'SHORT'
   confidence: number
   entry: number
   stop_loss?: number

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Minus, Save, Play, ChevronDown, ChevronUp, Target, Shield, Zap } from 'lucide-react'
+import { Plus, Minus, Save, Play, ChevronDown, ChevronUp, Target, Shield, Zap, BarChart3 } from 'lucide-react'
 
 interface StrategyCondition {
   id: string
@@ -64,7 +64,7 @@ export function StrategyBuilder() {
     active: false
   })
 
-  const [expanded, setExpanded] = useState<record<string, boolean>>({
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({
     basic: true,
     entry: true,
     exit: false,

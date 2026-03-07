@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Minus, Save, Play, ChevronDown, ChevronUp, Target, Shield, Zap, ArrowLeft } from 'lucide-react'
+import { Plus, Minus, Save, Play, ChevronDown, ChevronUp, Target, Shield, Zap, ArrowLeft, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
 interface StrategyCondition {
