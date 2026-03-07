@@ -84,10 +84,20 @@ async def list_signals(
     pair: Optional[str] = None,
     limit: int = 50
 ):
-    """List active trading signals - DYNAMIC from generator"""
+    """List active trading signals - DYNAMIC from generator with REAL-TIME prices"""
     
     # Get signals from dynamic generator
     signals = signal_generator.get_active_signals()
+    
+    # Update with real-time prices from Binance
+    for signal in signals:
+        try:
+            real_price = await get_current_price(signal["pair"], "binance")
+            if real_price > 0:
+                signal["current_price"] = real_price
+                signal["price_updated_at"] = datetime.utcnow().isoformat()
+        except Exception as e:
+            print(f"Failed to update price for {signal['pair']}: {e}")
     
     if pair:
         signals = [s for s in signals if s["pair"] == pair]
