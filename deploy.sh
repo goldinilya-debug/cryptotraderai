@@ -1,46 +1,50 @@
 #!/bin/bash
 
-# Deployment script for CryptoTraderAI
+# Deploy script for CryptoTraderAI
+# Usage: ./deploy.sh
 
-echo "🚀 Deploying CryptoTraderAI..."
+set -e
 
-# Check prerequisites
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js is not installed"
-    exit 1
-fi
+echo "🚀 Starting deployment..."
 
-if ! command -v python3 &> /dev/null; then
-    echo "❌ Python 3 is not installed"
-    exit 1
-fi
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-# Frontend deployment
-echo "📦 Building frontend..."
+# Build frontend
+echo -e "${YELLOW}📦 Building frontend...${NC}"
 cd frontend
-npm install
 npm run build
+cd ..
 
-echo "✅ Frontend build complete"
-echo "👉 Deploy frontend to Vercel:"
-echo "   npx vercel --prod"
+# Switch to gh-pages branch
+echo -e "${YELLOW}🔄 Switching to gh-pages branch...${NC}"
+git checkout gh-pages
 
-# Backend deployment
+# Copy build files
+echo -e "${YELLOW}📋 Copying build files...${NC}"
+cp -r frontend/dist/* .
+cp frontend/dist/.nojekyll . 2>/dev/null || echo "" > .nojekyll
+
+# Add CNAME if not exists
+if [ ! -f CNAME ]; then
+    echo "cryptotraderai.app" > CNAME
+fi
+
+# Commit and push
+echo -e "${YELLOW}💾 Committing changes...${NC}"
+git add -A
+git commit -m "Deploy: $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+git push origin gh-pages
+
+# Return to main
+echo -e "${YELLOW}↩️  Returning to main branch...${NC}"
+git checkout main
+
+echo -e "${GREEN}✅ Deployment complete!${NC}"
 echo ""
-echo "🐍 Preparing backend..."
-cd ../backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-echo "✅ Backend ready"
-echo "👉 Deploy backend to Railway:"
-echo "   railway login"
-echo "   railway up"
-
+echo "🌐 Your site will be available at:"
+echo "   https://goldinilya-debug.github.io/cryptotraderai/"
 echo ""
-echo "📝 Next steps:"
-echo "1. Set environment variables on Vercel and Railway"
-echo "2. Connect custom domain (cryptotraderai.app)"
-echo "3. Configure Supabase database"
-echo "4. Add OpenAI API key"
+echo "⏱️  Wait 1-2 minutes for changes to propagate"
