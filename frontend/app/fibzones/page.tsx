@@ -36,28 +36,54 @@ export default function FibZonesPage() {
   const loadPairData = async () => {
     setLoading(true)
     try {
+      // Формируем символ для Binance API
       const symbol = selectedPair.replace('/', '')
+      
+      console.log('Loading data for:', symbol, 'Timeframe:', timeframe)
+      
       // Получаем текущую цену
       const priceRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
+      if (!priceRes.ok) {
+        throw new Error(`Price API error: ${priceRes.status}`)
+      }
       const priceData = await priceRes.json()
       const price = parseFloat(priceData.lastPrice)
       const change = parseFloat(priceData.priceChangePercent)
+      console.log('Price loaded:', price, 'Change:', change + '%')
       setCurrentPrice(price)
       setPriceChange(change)
 
       // Получаем свечи для определения swing high/low
-      const interval = timeframe === '1H' ? '1h' : timeframe === '4H' ? '4h' : timeframe === '1D' ? '1d' : '1w'
+      const intervalMap: {[key: string]: string} = {
+        '15m': '15m',
+        '1H': '1h', 
+        '4H': '4h',
+        '1D': '1d'
+      }
+      const interval = intervalMap[timeframe] || '4h'
+      
+      console.log('Fetching klines with interval:', interval)
       const klinesRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=100`)
+      if (!klinesRes.ok) {
+        throw new Error(`Klines API error: ${klinesRes.status}`)
+      }
       const klines = await klinesRes.json()
+      console.log('Klines loaded:', klines.length, 'candles')
 
       if (klines.length > 0) {
         const highs = klines.map((k: any) => parseFloat(k[2]))
         const lows = klines.map((k: any) => parseFloat(k[3]))
-        setSwingHigh(Math.max(...highs))
-        setSwingLow(Math.min(...lows))
+        const maxHigh = Math.max(...highs)
+        const minLow = Math.min(...lows)
+        console.log('Swing High:', maxHigh, 'Swing Low:', minLow)
+        setSwingHigh(maxHigh)
+        setSwingLow(minLow)
+      } else {
+        console.warn('No klines data received')
       }
     } catch (e) {
       console.error('Error loading data:', e)
+      alert('Ошибка загрузки данных. Проверьте консоль (F12) для деталей.')
     }
     setLoading(false)
   }
@@ -153,10 +179,10 @@ export default function FibZonesPage() {
                 color: '#fff'
               }}
             >
-              <option>BTC/USDT</option>
-              <option>ETH/USDT</option>
-              <option>SOL/USDT</option>
-              <option>1000PEPE/USDT</option>
+              <option value="BTC/USDT">BTC/USDT</option>
+              <option value="ETH/USDT">ETH/USDT</option>
+              <option value="SOL/USDT">SOL/USDT</option>
+              <option value="1000PEPE/USDT">1000PEPE/USDT</option>
             </select>
             <select
               value={timeframe}
