@@ -19,7 +19,8 @@ export default function TelegramPage() {
     { type: 'alert', text: '⚠️ BTC пробил уровень $69,000', time: '1 час назад' }
   ])
 
-  const botUsername = 'CryptoTraderAI_Bot'
+  const botUsername = 'G1234N_Bot'
+  const botDisplayName = '@G1234N_Bot (Makeiteasy)'
   const botLink = `https://t.me/${botUsername}`
 
   const toggleNotification = (key: string) => {
@@ -56,7 +57,7 @@ export default function TelegramPage() {
               <Bot size={32} color="#fff" />
             </div>
             <div>
-              <h3 style={{ margin: '0', fontSize: '20px' }}>@{botUsername}</h3>
+              <h3 style={{ margin: '0', fontSize: '20px' }}>{botDisplayName}</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                 <span style={{ 
                   width: '8px', 
