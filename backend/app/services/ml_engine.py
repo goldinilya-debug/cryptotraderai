@@ -5,10 +5,16 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 from collections import defaultdict
 import httpx
-from groq import Groq
 
-# Initialize Groq for ML-enhanced prompts
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# Initialize Groq for ML-enhanced prompts (optional)
+groq_api_key = os.getenv("GROQ_API_KEY")
+groq_client = None
+if groq_api_key:
+    try:
+        from groq import Groq
+        groq_client = Groq(api_key=groq_api_key)
+    except:
+        pass
 
 class SignalML:
     """Machine Learning system for signal optimization"""
@@ -183,6 +189,9 @@ ML PERFORMANCE DATA:
         enhanced_prompt = self.enhance_prompt_with_ml(base_prompt, pair, "unknown", "unknown")
         
         try:
+            if not groq_client:
+                raise Exception("Groq client not initialized")
+            
             response = groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[

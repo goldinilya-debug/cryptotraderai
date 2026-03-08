@@ -2,15 +2,21 @@ import os
 import json
 from typing import Dict, Optional, List
 from datetime import datetime
-from groq import Groq
 from dotenv import load_dotenv
 
 from app.services.ml_engine import signal_ml
 
 load_dotenv()
 
-# Initialize Groq client
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# Initialize Groq client (optional)
+groq_api_key = os.getenv("GROQ_API_KEY")
+groq_client = None
+if groq_api_key:
+    try:
+        from groq import Groq
+        groq_client = Groq(api_key=groq_api_key)
+    except:
+        pass
 
 # Correlated pairs - these should not have opposite signals
 CORRELATED_PAIRS = {
@@ -213,6 +219,9 @@ ML INSIGHTS:
     )
     
     try:
+        if not groq_client:
+            raise Exception("Groq client not initialized - using fallback signal generation")
+        
         response = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
