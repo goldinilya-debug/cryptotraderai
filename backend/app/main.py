@@ -153,5 +153,26 @@ async def health():
         "status": "healthy",
         "ml_model": "trained",
         "active_signals": 1 if current_signal["active"] else 0,
-        "history_count": len(trade_history)
+        "history_count": len(trade_history),
+        "signal_generator": "running"
     }
+
+@app.post("/generate_manual")
+async def generate_manual():
+    """Manually trigger signal generation"""
+    from app.services.signal_generator_dynamic import signal_generator
+    import asyncio
+    
+    # Generate signals for all pairs
+    pairs = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+    results = []
+    
+    for pair in pairs:
+        try:
+            await signal_generator.analyze_and_generate(pair)
+            results.append({"pair": pair, "status": "processed"})
+            await asyncio.sleep(1)
+        except Exception as e:
+            results.append({"pair": pair, "status": "error", "error": str(e)})
+    
+    return {"status": "generation_complete", "results": results, "timestamp": datetime.utcnow().isoformat()}
