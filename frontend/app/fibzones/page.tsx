@@ -96,8 +96,14 @@ export default function FibZonesPage() {
     calculateFibZones()
   }, [swingHigh, swingLow, currentPrice])
 
-  // Загружаем данные при первом рендере и при смене пары/таймфрейма
+  // Загружаем данные при первом рендере
   useEffect(() => {
+    loadPairData()
+  }, []) // Пустой массив - только при первом рендере
+
+  // Загружаем данные при смене пары или таймфрейма
+  useEffect(() => {
+    console.log('Pair or timeframe changed:', selectedPair, timeframe)
     loadPairData()
   }, [selectedPair, timeframe])
 
@@ -261,11 +267,11 @@ export default function FibZonesPage() {
           <div>
             {/* Price Info */}
             <div style={{ background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
-                  <p style={{ margin: '0 0 8px 0', color: '#6b7280', fontSize: '14px' }}>Current Price</p>
+                  <p style={{ margin: '0 0 8px 0', color: '#6b7280', fontSize: '14px' }}>Current Price • {selectedPair}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '36px', fontWeight: 'bold' }}>${currentPrice.toLocaleString()}</span>
+                    <span style={{ fontSize: '36px', fontWeight: 'bold' }}>${currentPrice.toLocaleString(undefined, { minimumFractionDigits: currentPrice < 1 ? 8 : 2, maximumFractionDigits: currentPrice < 1 ? 8 : 2 })}</span>
                     <span style={{
                       padding: '4px 12px',
                       background: priceChange >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
@@ -275,6 +281,15 @@ export default function FibZonesPage() {
                       fontWeight: 'bold'
                     }}>
                       {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+                    </span>
+                  </div>
+                  {/* Swing High/Low */}
+                  <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                      Swing High: <strong style={{ color: '#10b981' }}>${swingHigh.toLocaleString(undefined, { minimumFractionDigits: swingHigh < 1 ? 8 : 2, maximumFractionDigits: swingHigh < 1 ? 8 : 2 })}</strong>
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                      Swing Low: <strong style={{ color: '#ef4444' }}>${swingLow.toLocaleString(undefined, { minimumFractionDigits: swingLow < 1 ? 8 : 2, maximumFractionDigits: swingLow < 1 ? 8 : 2 })}</strong>
                     </span>
                   </div>
                 </div>
