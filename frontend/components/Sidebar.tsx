@@ -17,11 +17,13 @@ import {
   Zap,
   PieChart,
   Settings,
-  Crosshair
+  Crosshair,
+  ZapIcon
 } from 'lucide-react'
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/smc-analysis', label: 'SMC Real-Time', icon: ZapIcon },
   { href: '/signals', label: 'Signals', icon: Activity },
   { href: '/screener', label: 'Screener', icon: Search },
   { href: '/analysis', label: 'Analysis', icon: BarChart3 },
