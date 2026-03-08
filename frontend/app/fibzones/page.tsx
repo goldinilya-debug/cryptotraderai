@@ -37,7 +37,11 @@ export default function FibZonesPage() {
     setLoading(true)
     try {
       // Формируем символ для Binance API
-      const symbol = selectedPair.replace('/', '')
+      // Для PEPE используем правильный тикер Binance
+      let symbol = selectedPair.replace('/', '')
+      if (symbol === '1000PEPEUSDT') {
+        symbol = 'PEPEUSDT' // Binance использует PEPEUSDT, не 1000PEPEUSDT
+      }
       
       console.log('Loading data for:', symbol, 'Timeframe:', timeframe)
       
