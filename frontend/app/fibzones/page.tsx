@@ -29,10 +29,47 @@ export default function FibZonesPage() {
   const [currentPrice, setCurrentPrice] = useState(68726)
   const [showRetracements, setShowRetracements] = useState(true)
   const [showExtensions, setShowExtensions] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [priceChange, setPriceChange] = useState(0)
+
+  // Загрузка данных при изменении пары или таймфрейма
+  const loadPairData = async () => {
+    setLoading(true)
+    try {
+      const symbol = selectedPair.replace('/', '')
+      // Получаем текущую цену
+      const priceRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
+      const priceData = await priceRes.json()
+      const price = parseFloat(priceData.lastPrice)
+      const change = parseFloat(priceData.priceChangePercent)
+      setCurrentPrice(price)
+      setPriceChange(change)
+
+      // Получаем свечи для определения swing high/low
+      const interval = timeframe === '1H' ? '1h' : timeframe === '4H' ? '4h' : timeframe === '1D' ? '1d' : '1w'
+      const klinesRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=100`)
+      const klines = await klinesRes.json()
+
+      if (klines.length > 0) {
+        const highs = klines.map((k: any) => parseFloat(k[2]))
+        const lows = klines.map((k: any) => parseFloat(k[3]))
+        setSwingHigh(Math.max(...highs))
+        setSwingLow(Math.min(...lows))
+      }
+    } catch (e) {
+      console.error('Error loading data:', e)
+    }
+    setLoading(false)
+  }
 
   useEffect(() => {
     calculateFibZones()
   }, [swingHigh, swingLow, currentPrice])
+
+  // Загружаем данные при первом рендере и при смене пары/таймфрейма
+  useEffect(() => {
+    loadPairData()
+  }, [selectedPair, timeframe])
 
   const calculateFibZones = () => {
     const range = swingHigh - swingLow
@@ -104,7 +141,7 @@ export default function FibZonesPage() {
             <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>Key levels for optimal entry and exit points</p>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <select
               value={selectedPair}
               onChange={(e) => setSelectedPair(e.target.value)}
@@ -119,7 +156,7 @@ export default function FibZonesPage() {
               <option>BTC/USDT</option>
               <option>ETH/USDT</option>
               <option>SOL/USDT</option>
-              <option>PEPE/USDT</option>
+              <option>1000PEPE/USDT</option>
             </select>
             <select
               value={timeframe}
@@ -132,11 +169,60 @@ export default function FibZonesPage() {
                 color: '#fff'
               }}
             >
-              <option>1H</option>
-              <option>4H</option>
-              <option>1D</option>
-              <option>1W</option>
+              <option value="15m">15m (Scalping)</option>
+              <option value="1H">1H (Day Trading)</option>
+              <option value="4H">4H (Swing)</option>
+              <option value="1D">1D (Position)</option>
             </select>
+            <button
+              onClick={loadPairData}
+              disabled={loading}
+              style={{
+                padding: '10px 20px',
+                background: loading ? '#1c1c2e' : 'linear-gradient(135deg, #00d4ff, #7c3aed)',
+                border: 'none',
+                borderRadius: '8px',
+                color: '#fff',
+                fontWeight: 'bold',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              {loading ? '⏳' : '🔄'} {loading ? 'Загрузка...' : 'Обновить'}
+            </button>
+          </div>
+        </div>
+
+        {/* Описание таймфреймов */}
+        <div style={{
+          background: '#13131f',
+          padding: '16px 20px',
+          borderRadius: '12px',
+          border: '1px solid #2a2a3e',
+          marginBottom: '24px'
+        }}>
+          <p style={{ margin: '0 0 12px 0', color: '#00d4ff', fontWeight: 'bold', fontSize: '14px' }}>
+            📊 Рекомендуемые таймфреймы для торговли:
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div style={{ padding: '12px', background: '#0a0a0f', borderRadius: '8px', borderLeft: '3px solid #f59e0b' }}>
+              <p style={{ margin: 0, fontWeight: 'bold', color: '#f59e0b', fontSize: '13px' }}>15m - Скальпинг</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Быстрые сетапы, много шума, подходит для активного трейдинга</p>
+            </div>
+            <div style={{ padding: '12px', background: '#0a0a0f', borderRadius: '8px', borderLeft: '3px solid #22c55e' }}>
+              <p style={{ margin: 0, fontWeight: 'bold', color: '#22c55e', fontSize: '13px' }}>1H - Дей-трейдинг ⭐</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Оптимальный баланс. Меньше шума, чёткие уровни</p>
+            </div>
+            <div style={{ padding: '12px', background: '#0a0a0f', borderRadius: '8px', borderLeft: '3px solid #3b82f6' }}>
+              <p style={{ margin: 0, fontWeight: 'bold', color: '#3b82f6', fontSize: '13px' }}>4H - Свинг-трейдинг ⭐⭐</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Самые сильные уровни. Рекомендуется для SMC</p>
+            </div>
+            <div style={{ padding: '12px', background: '#0a0a0f', borderRadius: '8px', borderLeft: '3px solid #a855f7' }}>
+              <p style={{ margin: 0, fontWeight: 'bold', color: '#a855f7', fontSize: '13px' }}>1D - Позиционная торговля</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Долгосрочные позиции, крупные движения</p>
+            </div>
           </div>
         </div>
 
@@ -150,15 +236,15 @@ export default function FibZonesPage() {
                   <p style={{ margin: '0 0 8px 0', color: '#6b7280', fontSize: '14px' }}>Current Price</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <span style={{ fontSize: '36px', fontWeight: 'bold' }}>${currentPrice.toLocaleString()}</span>
-                    <span style={{ 
-                      padding: '4px 12px', 
-                      background: 'rgba(16, 185, 129, 0.1)', 
-                      color: '#10b981',
+                    <span style={{
+                      padding: '4px 12px',
+                      background: priceChange >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                      color: priceChange >= 0 ? '#10b981' : '#ef4444',
                       borderRadius: '20px',
                       fontSize: '14px',
                       fontWeight: 'bold'
                     }}>
-                      +2.4%
+                      {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
                     </span>
                   </div>
                 </div>
@@ -193,7 +279,7 @@ export default function FibZonesPage() {
                 {fibZones.map((zone, idx) => {
                   const top = (zone.level * 100)
                   const isActive = currentPrice <= zone.price && (idx === fibZones.length - 1 || currentPrice >= fibZones[idx + 1].price)
-                  
+
                   return (
                     <div
                       key={zone.level}
@@ -269,7 +355,7 @@ export default function FibZonesPage() {
             {/* Swing Settings */}
             <div style={{ background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e', marginTop: '24px' }}>
               <h4 style={{ margin: '0 0 16px 0' }}>Swing Points</h4>
-              
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#9ca3af' }}>Swing High</label>
@@ -314,7 +400,7 @@ export default function FibZonesPage() {
             {/* Trading Zones Info */}
             <div style={{ background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e' }}>
               <h4 style={{ margin: '0 0 16px 0', color: '#00d4ff' }}>🎯 Trading Zones</h4>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ padding: '12px', background: '#0a0a0f', borderRadius: '8px', borderLeft: '3px solid #3b82f6' }}>
                   <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#3b82f6', fontWeight: 'bold' }}>DISCOUNT ZONE</p>
@@ -339,14 +425,14 @@ export default function FibZonesPage() {
             {/* Key Levels */}
             <div style={{ background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e' }}>
               <h4 style={{ margin: '0 0 16px 0' }}>Key Levels</h4>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {fibZones.filter(z => z.level === 0 || z.level === 0.5 || z.level === 0.618 || z.level === 1).map((zone) => (
-                  <div 
+                  <div
                     key={zone.level}
-                    style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '12px',
                       background: '#0a0a0f',
@@ -367,7 +453,7 @@ export default function FibZonesPage() {
             {/* Toggle Options */}
             <div style={{ background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e' }}>
               <h4 style={{ margin: '0 0 16px 0' }}>Display Options</h4>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                   <input
@@ -378,7 +464,7 @@ export default function FibZonesPage() {
                   />
                   <span>Show Retracements</span>
                 </label>
-                
+
                 <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
