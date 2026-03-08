@@ -119,6 +119,7 @@ export default function FibZonesPage() {
               <option>BTC/USDT</option>
               <option>ETH/USDT</option>
               <option>SOL/USDT</option>
+              <option>PEPE/USDT</option>
             </select>
             <select
               value={timeframe}
