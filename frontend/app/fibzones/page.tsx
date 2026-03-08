@@ -299,7 +299,7 @@ export default function FibZonesPage() {
                 <div>
                   <p style={{ margin: '0 0 8px 0', color: '#6b7280', fontSize: '14px' }}>Current Price • {selectedPair}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '36px', fontWeight: 'bold' }}>${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: currentPrice < 1 ? 7 : 2 })}</span>
+                    <span style={{ fontSize: '36px', fontWeight: 'bold' }}>${currentPrice < 0.01 ? currentPrice.toPrecision(6) : currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <span style={{
                       padding: '4px 12px',
                       background: priceChange >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
@@ -314,10 +314,10 @@ export default function FibZonesPage() {
                   {/* Swing High/Low */}
                   <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Swing High: <strong style={{ color: '#10b981' }}>${swingHigh.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: swingHigh < 1 ? 7 : 2 })}</strong>
+                      Swing High: <strong style={{ color: '#10b981' }}>${swingHigh < 0.01 ? swingHigh.toPrecision(6) : swingHigh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                     </span>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Swing Low: <strong style={{ color: '#ef4444' }}>${swingLow.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: swingLow < 1 ? 7 : 2 })}</strong>
+                      Swing Low: <strong style={{ color: '#ef4444' }}>${swingLow < 0.01 ? swingLow.toPrecision(6) : swingLow.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                     </span>
                   </div>
                 </div>
@@ -379,7 +379,7 @@ export default function FibZonesPage() {
                         fontWeight: 'bold',
                         border: `1px solid ${getZoneColor(zone)}`
                       }}>
-                        {zone.label} - ${zone.price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: zone.price < 1 ? 7 : 0 })}
+                        {zone.label} - ${zone.price < 0.01 ? zone.price.toPrecision(6) : zone.price.toLocaleString()}
                       </div>
 
                       {/* Zone Fill */}
@@ -419,7 +419,7 @@ export default function FibZonesPage() {
                     fontSize: '12px',
                     fontWeight: 'bold'
                   }}>
-                    Current ${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: currentPrice < 1 ? 7 : 2 })}
+                    Current ${currentPrice < 0.01 ? currentPrice.toPrecision(6) : currentPrice.toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -517,7 +517,7 @@ export default function FibZonesPage() {
                       <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px' }}>{zone.label}</p>
                       <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#6b7280' }}>{zone.type.toUpperCase()}</p>
                     </div>
-                    <span style={{ fontWeight: 'bold', color: getZoneColor(zone) }}>${zone.price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: zone.price < 1 ? 7 : 0 })}</span>
+                    <span style={{ fontWeight: 'bold', color: getZoneColor(zone) }}>${zone.price < 0.01 ? zone.price.toPrecision(6) : zone.price.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
