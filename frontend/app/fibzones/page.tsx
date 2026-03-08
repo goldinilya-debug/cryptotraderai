@@ -33,27 +33,43 @@ export default function FibZonesPage() {
   const [priceChange, setPriceChange] = useState(0)
 
   // Загрузка данных при изменении пары или таймфрейма
-  const loadPairData = async () => {
+  const loadPairData = async (pairToLoad?: string) => {
+    const pair = pairToLoad || selectedPair
     setLoading(true)
     try {
       // Формируем символ для Binance API
-      // Для PEPE используем правильный тикер Binance
-      let symbol = selectedPair.replace('/', '')
+      let symbol = pair.replace('/', '')
       if (symbol === '1000PEPEUSDT') {
-        symbol = 'PEPEUSDT' // Binance использует PEPEUSDT, не 1000PEPEUSDT
+        symbol = 'PEPEUSDT' // Binance использует PEPEUSDT
       }
       
-      console.log('Loading data for:', symbol, 'Timeframe:', timeframe)
+      console.log('=== Loading data ===')
+      console.log('Pair:', pair)
+      console.log('Symbol for API:', symbol)
+      console.log('Timeframe:', timeframe)
       
       // Получаем текущую цену
+      console.log('Fetching price...')
       const priceRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
+      console.log('Price response status:', priceRes.status)
+      
       if (!priceRes.ok) {
+        const errorText = await priceRes.text()
+        console.error('Price API error response:', errorText)
         throw new Error(`Price API error: ${priceRes.status}`)
       }
+      
       const priceData = await priceRes.json()
+      console.log('Price data received:', priceData)
+      
       const price = parseFloat(priceData.lastPrice)
       const change = parseFloat(priceData.priceChangePercent)
-      console.log('Price loaded:', price, 'Change:', change + '%')
+      console.log('Parsed price:', price, 'Change:', change)
+      
+      if (isNaN(price)) {
+        throw new Error('Invalid price received')
+      }
+      
       setCurrentPrice(price)
       setPriceChange(change)
 
@@ -68,11 +84,16 @@ export default function FibZonesPage() {
       
       console.log('Fetching klines with interval:', interval)
       const klinesRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=100`)
+      console.log('Klines response status:', klinesRes.status)
+      
       if (!klinesRes.ok) {
+        const errorText = await klinesRes.text()
+        console.error('Klines API error response:', errorText)
         throw new Error(`Klines API error: ${klinesRes.status}`)
       }
+      
       const klines = await klinesRes.json()
-      console.log('Klines loaded:', klines.length, 'candles')
+      console.log('Klines received:', klines.length)
 
       if (klines.length > 0) {
         const highs = klines.map((k: any) => parseFloat(k[2]))
@@ -84,10 +105,17 @@ export default function FibZonesPage() {
         setSwingLow(minLow)
       } else {
         console.warn('No klines data received')
+        // Fallback для PEPE если нет данных
+        if (pair.includes('PEPE')) {
+          setSwingHigh(price * 1.1)
+          setSwingLow(price * 0.9)
+        }
       }
+      
+      console.log('=== Data loading complete ===')
     } catch (e) {
       console.error('Error loading data:', e)
-      alert('Ошибка загрузки данных. Проверьте консоль (F12) для деталей.')
+      alert('Ошибка загрузки: ' + (e as Error).message)
     }
     setLoading(false)
   }
@@ -98,13 +126,13 @@ export default function FibZonesPage() {
 
   // Загружаем данные при первом рендере
   useEffect(() => {
-    loadPairData()
+    loadPairData('BTC/USDT')
   }, []) // Пустой массив - только при первом рендере
 
   // Загружаем данные при смене пары или таймфрейма
   useEffect(() => {
-    console.log('Pair or timeframe changed:', selectedPair, timeframe)
-    loadPairData()
+    console.log('Pair changed to:', selectedPair)
+    loadPairData(selectedPair)
   }, [selectedPair, timeframe])
 
   const calculateFibZones = () => {
@@ -211,7 +239,7 @@ export default function FibZonesPage() {
               <option value="1D">1D (Position)</option>
             </select>
             <button
-              onClick={loadPairData}
+              onClick={() => loadPairData(selectedPair)}
               disabled={loading}
               style={{
                 padding: '10px 20px',
