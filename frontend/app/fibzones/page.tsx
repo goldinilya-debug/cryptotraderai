@@ -20,6 +20,27 @@ interface PricePoint {
 
 const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1]
 
+// Список доступных пар
+const AVAILABLE_PAIRS = [
+  'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT',
+  'ADA/USDT', 'DOGE/USDT', 'TRX/USDT', 'TON/USDT', 'LINK/USDT',
+  'MATIC/USDT', 'DOT/USDT', 'LTC/USDT', 'BCH/USDT', 'UNI/USDT',
+  '1000PEPE/USDT', '1000SHIB/USDT', 'FLOKI/USDT', 'BONK/USDT',
+  'WIF/USDT', 'WLD/USDT', 'ARKM/USDT', 'PYTH/USDT', 'JUP/USDT',
+  'SEI/USDT', 'SUI/USDT', 'APT/USDT', 'INJ/USDT', 'RENDER/USDT',
+  'TIA/USDT', 'STRK/USDT', 'DYM/USDT', 'SAGA/USDT', 'ZRO/USDT'
+]
+
+// Форматирование цены
+const formatPrice = (price: number): string => {
+  if (price === 0) return '0'
+  if (price < 0.000001) return price.toExponential(4)
+  if (price < 0.01) return price.toFixed(8).replace(/\.?0+$/, '')
+  if (price < 1) return price.toFixed(4).replace(/\.?0+$/, '')
+  if (price < 1000) return price.toFixed(2)
+  return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 export default function FibZonesPage() {
   const [selectedPair, setSelectedPair] = useState('BTC/USDT')
   const [timeframe, setTimeframe] = useState('4H')
@@ -31,6 +52,52 @@ export default function FibZonesPage() {
   const [showExtensions, setShowExtensions] = useState(false)
   const [loading, setLoading] = useState(false)
   const [priceChange, setPriceChange] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [customPairs, setCustomPairs] = useState<string[]>([])
+  const [showAddPair, setShowAddPair] = useState(false)
+  const [newPairInput, setNewPairInput] = useState('')
+
+  // Объединяем стандартные и кастомные пары
+  const allPairs = [...AVAILABLE_PAIRS, ...customPairs]
+  
+  // Фильтруем пары по поиску
+  const filteredPairs = allPairs.filter(pair => 
+    pair.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  // Загрузка кастомных пар из localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('fibCustomPairs')
+    if (saved) {
+      setCustomPairs(JSON.parse(saved))
+    }
+  }, [])
+
+  // Сохранение кастомных пар
+  const saveCustomPairs = (pairs: string[]) => {
+    setCustomPairs(pairs)
+    localStorage.setItem('fibCustomPairs', JSON.stringify(pairs))
+  }
+
+  // Добавление новой пары
+  const addCustomPair = () => {
+    const pair = newPairInput.toUpperCase().trim()
+    if (pair && !allPairs.includes(pair)) {
+      if (pair.includes('/USDT') || pair.includes('USDT')) {
+        const formattedPair = pair.includes('/') ? pair : pair.replace('USDT', '/USDT')
+        saveCustomPairs([...customPairs, formattedPair])
+        setNewPairInput('')
+        setShowAddPair(false)
+      } else {
+        alert('Пара должна заканчиваться на USDT (например: ACE/USDT)')
+      }
+    }
+  }
+
+  // Удаление кастомной пары
+  const removeCustomPair = (pairToRemove: string) => {
+    saveCustomPairs(customPairs.filter(p => p !== pairToRemove))
+  }
 
   // Загрузка данных при изменении пары или таймфрейма
   const loadPairData = async (pairToLoad?: string) => {
@@ -205,23 +272,130 @@ export default function FibZonesPage() {
             <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>Key levels for optimal entry and exit points</p>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <select
-              value={selectedPair}
-              onChange={(e) => setSelectedPair(e.target.value)}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Поиск и выбор пары */}
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск пары..."
+                style={{
+                  padding: '10px 16px',
+                  background: '#13131f',
+                  border: '1px solid #2a2a3e',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  width: '150px'
+                }}
+              />
+              {searchQuery && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  background: '#1c1c2e',
+                  border: '1px solid #2a2a3e',
+                  borderRadius: '8px',
+                  marginTop: '4px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  zIndex: 100
+                }}>
+                  {filteredPairs.map(pair => (
+                    <div
+                      key={pair}
+                      onClick={() => {
+                        setSelectedPair(pair)
+                        setSearchQuery('')
+                      }}
+                      style={{
+                        padding: '10px 16px',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid #2a2a3e',
+                        background: selectedPair === pair ? '#2a2a3e' : 'transparent'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#2a2a3e'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = selectedPair === pair ? '#2a2a3e' : 'transparent'}
+                    >
+                      {pair}
+                      {customPairs.includes(pair) && (
+                        <span 
+                          style={{ float: 'right', color: '#ef4444', cursor: 'pointer' }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeCustomPair(pair)
+                          }}
+                        >
+                          ×
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Текущая пара */}
+            <div style={{
+              padding: '10px 16px',
+              background: '#1c1c2e',
+              border: '1px solid #00d4ff',
+              borderRadius: '8px',
+              color: '#00d4ff',
+              fontWeight: 'bold'
+            }}>
+              {selectedPair}
+            </div>
+            
+            {/* Кнопка добавить пару */}
+            <button
+              onClick={() => setShowAddPair(!showAddPair)}
               style={{
                 padding: '10px 16px',
                 background: '#13131f',
-                border: '1px solid #2a2a3e',
+                border: '1px solid #10b981',
                 borderRadius: '8px',
-                color: '#fff'
+                color: '#10b981',
+                cursor: 'pointer'
               }}
             >
-              <option value="BTC/USDT">BTC/USDT</option>
-              <option value="ETH/USDT">ETH/USDT</option>
-              <option value="SOL/USDT">SOL/USDT</option>
-              <option value="1000PEPE/USDT">1000PEPE/USDT</option>
-            </select>
+              + Добавить
+            </button>
+            
+            {showAddPair && (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  value={newPairInput}
+                  onChange={(e) => setNewPairInput(e.target.value)}
+                  placeholder="ACE/USDT"
+                  style={{
+                    padding: '10px 16px',
+                    background: '#13131f',
+                    border: '1px solid #2a2a3e',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    width: '120px'
+                  }}
+                />
+                <button
+                  onClick={addCustomPair}
+                  style={{
+                    padding: '10px 16px',
+                    background: '#10b981',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    cursor: 'pointer'
+                  }}
+                >
+                  OK
+                </button>
+              </div>
+            )}
+            
             <select
               value={timeframe}
               onChange={(e) => setTimeframe(e.target.value)}
@@ -233,11 +407,12 @@ export default function FibZonesPage() {
                 color: '#fff'
               }}
             >
-              <option value="15m">15m (Scalping)</option>
-              <option value="1H">1H (Day Trading)</option>
-              <option value="4H">4H (Swing)</option>
-              <option value="1D">1D (Position)</option>
+              <option value="15m">15m</option>
+              <option value="1H">1H</option>
+              <option value="4H">4H</option>
+              <option value="1D">1D</option>
             </select>
+            
             <button
               onClick={() => loadPairData(selectedPair)}
               disabled={loading}
@@ -299,7 +474,7 @@ export default function FibZonesPage() {
                 <div>
                   <p style={{ margin: '0 0 8px 0', color: '#6b7280', fontSize: '14px' }}>Current Price • {selectedPair}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '36px', fontWeight: 'bold' }}>${currentPrice < 0.01 ? currentPrice.toPrecision(6) : currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span style={{ fontSize: '36px', fontWeight: 'bold' }}>${formatPrice(currentPrice)}</span>
                     <span style={{
                       padding: '4px 12px',
                       background: priceChange >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
@@ -314,10 +489,10 @@ export default function FibZonesPage() {
                   {/* Swing High/Low */}
                   <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Swing High: <strong style={{ color: '#10b981' }}>${swingHigh < 0.01 ? swingHigh.toPrecision(6) : swingHigh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                      Swing High: <strong style={{ color: '#10b981' }}>${formatPrice(swingHigh)}</strong>
                     </span>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Swing Low: <strong style={{ color: '#ef4444' }}>${swingLow < 0.01 ? swingLow.toPrecision(6) : swingLow.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                      Swing Low: <strong style={{ color: '#ef4444' }}>${formatPrice(swingLow)}</strong>
                     </span>
                   </div>
                 </div>
@@ -379,7 +554,7 @@ export default function FibZonesPage() {
                         fontWeight: 'bold',
                         border: `1px solid ${getZoneColor(zone)}`
                       }}>
-                        {zone.label} - ${zone.price < 0.01 ? zone.price.toPrecision(6) : zone.price.toLocaleString()}
+                        {zone.label} - ${formatPrice(zone.price)}
                       </div>
 
                       {/* Zone Fill */}
@@ -419,7 +594,7 @@ export default function FibZonesPage() {
                     fontSize: '12px',
                     fontWeight: 'bold'
                   }}>
-                    Current ${currentPrice < 0.01 ? currentPrice.toPrecision(6) : currentPrice.toLocaleString()}
+                    Current ${formatPrice(currentPrice)}
                   </div>
                 </div>
               </div>
@@ -517,7 +692,7 @@ export default function FibZonesPage() {
                       <p style={{ margin: 0, fontWeight: 'bold', fontSize: '14px' }}>{zone.label}</p>
                       <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#6b7280' }}>{zone.type.toUpperCase()}</p>
                     </div>
-                    <span style={{ fontWeight: 'bold', color: getZoneColor(zone) }}>${zone.price < 0.01 ? zone.price.toPrecision(6) : zone.price.toLocaleString()}</span>
+                    <span style={{ fontWeight: 'bold', color: getZoneColor(zone) }}>${formatPrice(zone.price)}</span>
                   </div>
                 ))}
               </div>
