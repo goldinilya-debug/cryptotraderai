@@ -88,8 +88,14 @@ async def login(req: LoginRequest):
 async def get_current_user(authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing token")
-    # Simple token validation - in production use proper JWT
-    return {"email": "user"}
+    token = authorization.split(" ")[1]
+    # Find user by token
+    data = load_data()
+    for email, user_data in data["users"].items():
+        expected_token = create_token(user_data["id"], email)
+        if expected_token == token:
+            return {"email": email, "user_id": user_data["id"]}
+    raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.post("/api/diary/entries")
 async def create_entry(entry: DiaryEntry, user: dict = Depends(get_current_user)):
@@ -106,9 +112,42 @@ async def list_entries(user: dict = Depends(get_current_user)):
     data = load_data()
     return data["diary"].get(user["email"], [])
 
+@app.patch("/api/diary/entries/{entry_id}")
+async def update_entry(entry_id: str, updates: DiaryEntry, user: dict = Depends(get_current_user)):
+    data = load_data()
+    entries = data["diary"].get(user["email"], [])
+    for i, entry in enumerate(entries):
+        if entry.get("id") == entry_id:
+            entries[i] = {**entry, **updates.dict(), "id": entry_id}
+            break
+    save_data(data)
+    return {"success": True}
+
+@app.delete("/api/diary/entries/{entry_id}")
+async def delete_entry(entry_id: str, user: dict = Depends(get_current_user)):
+    data = load_data()
+    entries = data["diary"].get(user["email"], [])
+    data["diary"][user["email"]] = [e for e in entries if e.get("id") != entry_id]
+    save_data(data)
+    return {"success": True}
+
 @app.get("/api/diary/stats")
 async def get_stats(user: dict = Depends(get_current_user)):
-    return {"total_trades": 0, "winning_trades": 0, "losing_trades": 0, "total_pnl": 0, "win_rate": 0}
+    data = load_data()
+    entries = data["diary"].get(user["email"], [])
+    closed = [e for e in entries if e.get("status") == "CLOSED"]
+    total = len(closed)
+    wins = len([e for e in closed if e.get("pnl", 0) > 0])
+    losses = len([e for e in closed if e.get("pnl", 0) < 0])
+    total_pnl = sum(e.get("pnl", 0) for e in closed)
+    win_rate = round((wins / total * 100), 2) if total > 0 else 0
+    return {
+        "total_trades": total,
+        "winning_trades": wins,
+        "losing_trades": losses,
+        "total_pnl": round(total_pnl, 2),
+        "win_rate": win_rate
+    }
 
 @app.get("/health")
 async def health():
