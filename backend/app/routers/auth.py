@@ -3,8 +3,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import timedelta
+from uuid import uuid4
 
 from app.services.auth_service import AuthService, EncryptionService
+from app.database import get_db, Database
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer()
@@ -51,16 +53,19 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return payload
 
 @router.post("/register", response_model=TokenResponse)
-async def register(user_data: UserRegister):
+async def register(user_data: UserRegister, db: Database = Depends(get_db)):
     """Register a new user"""
-    # In production: Check if email exists in database
-    # For now: Mock implementation
+    # Check if email already exists
+    existing_user = await db.get_user_by_email(user_data.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
     
     # Hash password
     password_hash = AuthService.hash_password(user_data.password)
     
-    # Create user in database (mock)
-    user_id = "user_" + str(hash(user_data.email))[:8]
+    # Create user in database
+    user_id = str(uuid4())
+    user = await db.create_user(user_id, user_data.email, password_hash)
     
     # Create access token
     access_token = AuthService.create_access_token(
@@ -76,39 +81,43 @@ async def register(user_data: UserRegister):
     }
 
 @router.post("/login", response_model=TokenResponse)
-async def login(user_data: UserLogin):
+async def login(user_data: UserLogin, db: Database = Depends(get_db)):
     """Login existing user"""
-    # In production: Fetch user from database and verify password
-    # For now: Mock implementation
+    # Fetch user from database
+    user = await db.get_user_by_email(user_data.email)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    # Mock user verification
-    user_id = "user_" + str(hash(user_data.email))[:8]
+    # Verify password
+    if not AuthService.verify_password(user_data.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     
     # Create access token
     access_token = AuthService.create_access_token(
-        data={"sub": user_id, "email": user_data.email},
+        data={"sub": user["id"], "email": user["email"]},
         expires_delta=timedelta(days=7)
     )
     
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user_id": user_id,
-        "email": user_data.email
+        "user_id": user["id"],
+        "email": user["email"]
     }
 
 @router.get("/profile", response_model=UserProfile)
-async def get_profile(current_user: dict = Depends(get_current_user)):
+async def get_profile(current_user: dict = Depends(get_current_user), db: Database = Depends(get_db)):
     """Get user profile and connected exchanges"""
-    # In production: Fetch from database
+    # Fetch user from database
+    user = await db.get_user_by_id(current_user["sub"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     
     return {
-        "id": current_user["sub"],
-        "email": current_user["email"],
-        "created_at": "2026-03-07T00:00:00Z",
-        "exchanges": [
-            # Mock data - in production fetch from user_exchanges table
-        ]
+        "id": user["id"],
+        "email": user["email"],
+        "created_at": user["created_at"],
+        "exchanges": []  # TODO: Fetch from user_exchanges table
     }
 
 @router.post("/exchange/connect")

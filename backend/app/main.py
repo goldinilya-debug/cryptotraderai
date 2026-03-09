@@ -4,8 +4,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime, time as dt_time
 import time
 
-from app.routers import signals, analysis, performance, killzones, ml, ml_settings, sniper, tradingview, auth
+from app.routers import signals, analysis, performance, killzones, ml, ml_settings, sniper, tradingview, auth, diary
 from app.services.signal_generator_dynamic import start_signal_generation
+from app.database import db
 
 # Global storage for SMC signals (Step 1 from TD)
 current_signal = {
@@ -24,6 +25,10 @@ trade_history = []  # Step 6 - Trade journal
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start background tasks on startup"""
+    # Initialize database
+    await db.connect()
+    print("📦 Database connected")
+    
     # Start signal generator in background
     import asyncio
     asyncio.create_task(start_signal_generation())
@@ -32,6 +37,8 @@ async def lifespan(app: FastAPI):
     yield
     
     # Cleanup on shutdown
+    await db.close()
+    print("👋 Database disconnected")
     print("👋 Shutting down...")
 
 app = FastAPI(
@@ -58,6 +65,7 @@ app.add_middleware(
 
 # Routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(diary.router, prefix="/api/diary", tags=["diary"])
 app.include_router(signals.router, prefix="/api/signals", tags=["signals"])
 app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
 app.include_router(performance.router, prefix="/api/performance", tags=["performance"])

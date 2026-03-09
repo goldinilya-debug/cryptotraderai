@@ -6,7 +6,7 @@
 LOG_FILE="/tmp/tunnel-manager.log"
 TUNNEL_URL_FILE="/tmp/tunnel.url"
 PID_FILE="/tmp/lt.pid"
-PORT="8080"
+PORT="8000"
 SUBDOMAIN="cryptotraderai-bot"
 
 echo "$(date): Starting tunnel manager..." >> $LOG_FILE
