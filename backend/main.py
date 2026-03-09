@@ -168,7 +168,7 @@ async def health():
 @app.post("/generate_manual")
 async def generate_manual():
     """Manually trigger signal generation"""
-    from services.signal_generator_dynamic import signal_generator
+    from app.services.signal_generator_dynamic import signal_generator
     import asyncio
     
     # Generate signals for all pairs
