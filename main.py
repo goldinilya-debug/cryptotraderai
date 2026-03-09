@@ -67,6 +67,18 @@ class DiaryEntry(BaseModel):
     mistakes: Optional[str] = None
     lessons: Optional[str] = None
 
+class DailyJournal(BaseModel):
+    date: str
+    mood: Optional[str] = None
+    market_condition: Optional[str] = None
+    daily_goals: Optional[str] = None
+    day_review: Optional[str] = None
+    lessons_learned: Optional[str] = None
+    setup_notes: Optional[str] = None
+    emotions: Optional[str] = None
+    mistakes: Optional[str] = None
+    lessons: Optional[str] = None
+
 @app.post("/api/auth/register")
 async def register(req: RegisterRequest):
     data = load_data()
@@ -186,6 +198,48 @@ async def get_stats(user: dict = Depends(get_current_user)):
         "gain_percent": gain_percent,
         "history": closed[-30:]  # Last 30 trades for charts
     }
+
+@app.post("/api/diary/journal")
+async def save_daily_journal(journal: DailyJournal, user: dict = Depends(get_current_user)):
+    data = load_data()
+    if "journal" not in data:
+        data["journal"] = {}
+    if user["email"] not in data["journal"]:
+        data["journal"][user["email"]] = {}
+    data["journal"][user["email"]][journal.date] = journal.dict()
+    save_data(data)
+    return {"success": True}
+
+@app.get("/api/diary/journal/{date}")
+async def get_daily_journal(date: str, user: dict = Depends(get_current_user)):
+    data = load_data()
+    journal = data.get("journal", {}).get(user["email"], {}).get(date)
+    if not journal:
+        raise HTTPException(status_code=404, detail="Journal not found")
+    return journal
+
+@app.get("/api/diary/calendar")
+async def get_calendar(user: dict = Depends(get_current_user)):
+    data = load_data()
+    entries = data.get("diary", {}).get(user["email"], [])
+    # Group by date
+    calendar = {}
+    for entry in entries:
+        date = entry.get("entry_date")
+        if date not in calendar:
+            calendar[date] = {"trades": 0, "pnl": 0, "has_journal": False}
+        calendar[date]["trades"] += 1
+        calendar[date]["pnl"] += entry.get("pnl", 0) or 0
+    
+    # Add journal info
+    journals = data.get("journal", {}).get(user["email"], {})
+    for date in journals:
+        if date not in calendar:
+            calendar[date] = {"trades": 0, "pnl": 0, "has_journal": True}
+        else:
+            calendar[date]["has_journal"] = True
+    
+    return calendar
 
 @app.get("/health")
 async def health():

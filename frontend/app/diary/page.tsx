@@ -50,9 +50,19 @@ export default function DiaryPage() {
   const [entries, setEntries] = useState<DiaryEntry[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'trades' | 'journal' | 'calendar'>('trades')
   const [showForm, setShowForm] = useState(false)
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null)
   const [filter, setFilter] = useState({ symbol: '', status: '' })
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [journalData, setJournalData] = useState({
+    mood: '',
+    market_condition: '',
+    daily_goals: '',
+    day_review: '',
+    lessons_learned: ''
+  })
+  const [calendar, setCalendar] = useState<Record<string, any>>({})
 
   // Form state
   const [formData, setFormData] = useState({
@@ -82,18 +92,62 @@ export default function DiaryPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [entriesData, statsData] = await Promise.all([
+      const [entriesData, statsData, calendarData] = await Promise.all([
         diaryAPI.getEntries({ limit: '50', symbol: filter.symbol, status: filter.status }),
         diaryAPI.getStats(),
+        diaryAPI.getCalendar(),
       ])
       setEntries(entriesData)
       setStats(statsData)
+      setCalendar(calendarData)
     } catch (error) {
       console.error('Failed to load diary:', error)
     } finally {
       setLoading(false)
     }
   }
+
+  const loadJournal = async () => {
+    try {
+      const data = await diaryAPI.getJournal(selectedDate)
+      setJournalData({
+        mood: data.mood || '',
+        market_condition: data.market_condition || '',
+        daily_goals: data.daily_goals || '',
+        day_review: data.day_review || '',
+        lessons_learned: data.lessons_learned || ''
+      })
+    } catch (error) {
+      // Journal not found, reset
+      setJournalData({
+        mood: '',
+        market_condition: '',
+        daily_goals: '',
+        day_review: '',
+        lessons_learned: ''
+      })
+    }
+  }
+
+  const saveJournal = async () => {
+    try {
+      await diaryAPI.saveJournal({ date: selectedDate, ...journalData })
+      alert('Ежедневник сохранен!')
+      loadData()
+    } catch (error) {
+      alert('Ошибка сохранения: ' + (error as Error).message)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [filter])
+
+  useEffect(() => {
+    if (activeTab === 'journal') {
+      loadJournal()
+    }
+  }, [selectedDate, activeTab])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -210,12 +264,70 @@ export default function DiaryPage() {
               fontSize: '14px',
               fontWeight: 'bold',
               cursor: 'pointer',
-              display: 'flex',
+              display: activeTab === 'trades' ? 'flex' : 'none',
               alignItems: 'center',
               gap: '8px'
             }}
           >
             <Plus size={18} /> Новая сделка
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          <button
+            onClick={() => setActiveTab('trades')}
+            style={{
+              padding: '10px 20px',
+              background: activeTab === 'trades' ? '#00d4ff' : '#0a0a0f',
+              color: activeTab === 'trades' ? '#0a0a0f' : '#fff',
+              border: '1px solid #2a2a3e',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <BarChart3 size={16} /> Сделки
+          </button>
+          <button
+            onClick={() => setActiveTab('journal')}
+            style={{
+              padding: '10px 20px',
+              background: activeTab === 'journal' ? '#00d4ff' : '#0a0a0f',
+              color: activeTab === 'journal' ? '#0a0a0f' : '#fff',
+              border: '1px solid #2a2a3e',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <BookOpen size={16} /> Ежедневник
+          </button>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            style={{
+              padding: '10px 20px',
+              background: activeTab === 'calendar' ? '#00d4ff' : '#0a0a0f',
+              color: activeTab === 'calendar' ? '#0a0a0f' : '#fff',
+              border: '1px solid #2a2a3e',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Calendar size={16} /> Календарь
           </button>
         </div>
 
@@ -295,47 +407,50 @@ export default function DiaryPage() {
         )}
       </div>
 
-      {/* Filters */}
-      <div style={{ padding: '16px 20px', display: 'flex', gap: '12px', borderBottom: '1px solid #2a2a3e' }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: '200px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }} />
-          <input
-            type="text"
-            placeholder="Поиск по паре..."
-            value={filter.symbol}
-            onChange={(e) => setFilter({ ...filter, symbol: e.target.value.toUpperCase() })}
-            style={{
-              width: '100%',
-              padding: '10px 12px 10px 36px',
-              background: '#13131f',
-              border: '1px solid #2a2a3e',
-              borderRadius: '8px',
-              color: '#fff',
-              fontSize: '14px'
-            }}
-          />
-        </div>
-        <select
-          value={filter.status}
-          onChange={(e) => setFilter({ ...filter, status: e.target.value })}
-          style={{
-            padding: '10px 12px',
-            background: '#13131f',
-            border: '1px solid #2a2a3e',
-            borderRadius: '8px',
-            color: '#fff',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }}
-        >
-          <option value="">Все статусы</option>
-          <option value="OPEN">Открытые</option>
-          <option value="CLOSED">Закрытые</option>
-          <option value="CANCELLED">Отменённые</option>
-        </select>
-      </div>
+      {/* Tab Content */}
+      {activeTab === 'trades' && (
+        <>
+          {/* Filters */}
+          <div style={{ padding: '16px 20px', display: 'flex', gap: '12px', borderBottom: '1px solid #2a2a3e' }}>
+            <div style={{ position: 'relative', flex: 1, maxWidth: '200px' }}>
+              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }} />
+              <input
+                type="text"
+                placeholder="Поиск по паре..."
+                value={filter.symbol}
+                onChange={(e) => setFilter({ ...filter, symbol: e.target.value.toUpperCase() })}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 36px',
+                  background: '#13131f',
+                  border: '1px solid #2a2a3e',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            <select
+              value={filter.status}
+              onChange={(e) => setFilter({ ...filter, status: e.target.value })}
+              style={{
+                padding: '10px 12px',
+                background: '#13131f',
+                border: '1px solid #2a2a3e',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="">Все статусы</option>
+              <option value="OPEN">Открытые</option>
+              <option value="CLOSED">Закрытые</option>
+              <option value="CANCELLED">Отменённые</option>
+            </select>
+          </div>
 
-      {/* Entries List */}
+          {/* Entries List */}
       <div style={{ padding: '20px' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>Загрузка...</div>
@@ -798,6 +913,185 @@ export default function DiaryPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'journal' && (
+        <div style={{ padding: '20px' }}>
+          <div style={{ background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e', marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: '#9ca3af' }}>Дата</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#0a0a0f',
+                border: '1px solid #2a2a3e',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+                marginBottom: '20px'
+              }}
+            />
+            
+            <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: '#9ca3af' }}>Настроение</label>
+            <select
+              value={journalData.mood}
+              onChange={(e) => setJournalData({...journalData, mood: e.target.value})}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#0a0a0f',
+                border: '1px solid #2a2a3e',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+                marginBottom: '20px'
+              }}
+            >
+              <option value="">Выберите...</option>
+              <option value="great">😄 Отличное</option>
+              <option value="good">🙂 Хорошее</option>
+              <option value="neutral">😐 Нейтральное</option>
+              <option value="bad">😕 Плохое</option>
+              <option value="terrible">😫 Ужасное</option>
+            </select>
+            
+            <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: '#9ca3af' }}>Состояние рынка</label>
+            <select
+              value={journalData.market_condition}
+              onChange={(e) => setJournalData({...journalData, market_condition: e.target.value})}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#0a0a0f',
+                border: '1px solid #2a2a3e',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+                marginBottom: '20px'
+              }}
+            >
+              <option value="">Выберите...</option>
+              <option value="trending_up">📈 Тренд вверх</option>
+              <option value="trending_down">📉 Тренд вниз</option>
+              <option value="ranging">↔️ Боковик</option>
+              <option value="volatile">⚡ Волатильность</option>
+              <option value="uncertain">❓ Неопределенность</option>
+            </select>
+            
+            <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: '#9ca3af' }}>Цели на день</label>
+            <textarea
+              rows={3}
+              placeholder="Что планировали сделать сегодня?"
+              value={journalData.daily_goals}
+              onChange={(e) => setJournalData({...journalData, daily_goals: e.target.value})}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#0a0a0f',
+                border: '1px solid #2a2a3e',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+                resize: 'vertical',
+                marginBottom: '20px'
+              }}
+            />
+            
+            <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: '#9ca3af' }}>Обзор дня</label>
+            <textarea
+              rows={4}
+              placeholder="Как прошел день? Что получилось, что нет?"
+              value={journalData.day_review}
+              onChange={(e) => setJournalData({...journalData, day_review: e.target.value})}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#0a0a0f',
+                border: '1px solid #2a2a3e',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+                resize: 'vertical',
+                marginBottom: '20px'
+              }}
+            />
+            
+            <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', color: '#9ca3af' }}>Уроки</label>
+            <textarea
+              rows={3}
+              placeholder="Что узнали сегодня?"
+              value={journalData.lessons_learned}
+              onChange={(e) => setJournalData({...journalData, lessons_learned: e.target.value})}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#0a0a0f',
+                border: '1px solid #2a2a3e',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+                resize: 'vertical',
+                marginBottom: '20px'
+              }}
+            />
+            
+            <button
+              onClick={saveJournal}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: '#00d4ff',
+                color: '#0a0a0f',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              💾 Сохранить ежедневник
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'calendar' && (
+        <div style={{ padding: '20px' }}>
+          <div style={{ background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e' }}>
+            <h2 style={{ margin: '0 0 20px 0', fontSize: '18px' }}>Календарь активности</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '12px' }}>
+              {Object.entries(calendar).sort((a, b) => b[0].localeCompare(a[0])).map(([date, data]: [string, any]) => (
+                <div
+                  key={date}
+                  style={{
+                    padding: '12px',
+                    background: data.pnl > 0 ? 'rgba(16, 185, 129, 0.1)' : data.pnl < 0 ? 'rgba(239, 68, 68, 0.1)' : '#0a0a0f',
+                    border: `1px solid ${data.pnl > 0 ? '#10b981' : data.pnl < 0 ? '#ef4444' : '#2a2a3e'}`,
+                    borderRadius: '8px',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => { setSelectedDate(date); setActiveTab('journal'); }}
+                >
+                  <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#6b7280' }}>{date}</p>
+                  <p style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold', color: data.pnl > 0 ? '#10b981' : data.pnl < 0 ? '#ef4444' : '#fff' }}>
+                    {data.pnl > 0 ? '+' : ''}${data.pnl?.toFixed(0)}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>
+                    {data.trades} сделок {data.has_journal && '• 📝'}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {Object.keys(calendar).length === 0 && (
+              <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px' }}>
+                Нет данных. Добавьте сделки или записи в ежедневник.
+              </p>
+            )}
           </div>
         </div>
       )}

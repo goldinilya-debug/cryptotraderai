@@ -89,6 +89,10 @@ export const diaryAPI = {
       method: 'POST',
       body: JSON.stringify(journal),
     }),
+
+  // Calendar
+  getCalendar: () =>
+    fetchWithAuth('/api/diary/calendar'),
 };
 
 export default { authAPI, diaryAPI };
