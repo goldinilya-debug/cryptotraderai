@@ -44,12 +44,12 @@ const menuItems = [
 // Функция определения Kill Zone (время Израиля GMT+3)
 const getKillZone = () => {
   const now = new Date()
-  const israelTime = new Date(now.getTime() + (3 * 60 * 60 * 1000))
-  const hour = israelTime.getUTCHours()
+  const utcHour = now.getUTCHours()
+  const israelHour = (utcHour + 3) % 24 // GMT+3 для Израиля
   
-  if (hour >= 20 || hour < 8) return { name: 'Asian', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.1)' }
-  if (hour >= 8 && hour < 16) return { name: 'London', color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)' }
-  if (hour >= 13 && hour < 21) return { name: 'New York', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)' }
+  if (israelHour >= 20 || israelHour < 8) return { name: 'Asian', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.1)' }
+  if (israelHour >= 8 && israelHour < 16) return { name: 'London', color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)' }
+  if (israelHour >= 13 && israelHour < 21) return { name: 'New York', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)' }
   return { name: 'Asian', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.1)' }
 }
 
