@@ -36,10 +36,14 @@ interface Stats {
   total_trades: number
   winning_trades: number
   losing_trades: number
-  open_trades: number
   total_pnl: number
   win_rate: number
+  avg_win: number
+  avg_loss: number
   profit_factor: number
+  expectancy: number
+  gain_percent: number
+  history?: DiaryEntry[]
 }
 
 export default function DiaryPage() {
@@ -217,44 +221,77 @@ export default function DiaryPage() {
 
         {/* Stats */}
         {stats && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
-            <StatCard 
-              title="Всего сделок" 
-              value={stats.total_trades} 
-              icon={<BarChart3 size={20} />} 
-              color="#6b7280"
-            />
-            <StatCard 
-              title="Win Rate" 
-              value={`${stats.win_rate}%`} 
-              icon={<Target size={20} />} 
-              color={stats.win_rate >= 50 ? '#10b981' : '#ef4444'}
-            />
-            <StatCard 
-              title="P&L" 
-              value={`$${stats.total_pnl?.toFixed(2) || '0.00'}`} 
-              icon={stats.total_pnl >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-              color={stats.total_pnl >= 0 ? '#10b981' : '#ef4444'}
-            />
-            <StatCard 
-              title="Profit Factor" 
-              value={stats.profit_factor?.toFixed(2) || '0.00'} 
-              icon={<Target size={20} />} 
-              color="#00d4ff"
-            />
-            <StatCard 
-              title="Прибыльных" 
-              value={stats.winning_trades} 
-              icon={<TrendingUp size={20} />} 
-              color="#10b981"
-            />
-            <StatCard 
-              title="Убыточных" 
-              value={stats.losing_trades} 
-              icon={<TrendingDown size={20} />} 
-              color="#ef4444"
-            />
-          </div>
+          <>
+            {/* Main Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+              <StatCard 
+                title="Gain" 
+                value={`${stats.gain_percent > 0 ? '+' : ''}${stats.gain_percent}%`} 
+                icon={<TrendingUp size={18} />} 
+                color={stats.gain_percent >= 0 ? '#10b981' : '#ef4444'}
+              />
+              <StatCard 
+                title="Avg Win" 
+                value={`$${stats.avg_win}`} 
+                icon={<TrendingUp size={18} />} 
+                color="#10b981"
+              />
+              <StatCard 
+                title="Avg Loss" 
+                value={`$${stats.avg_loss}`} 
+                icon={<TrendingDown size={18} />} 
+                color="#ef4444"
+              />
+              <StatCard 
+                title="Win Rate" 
+                value={`${stats.win_rate}%`} 
+                icon={<Target size={18} />} 
+                color={stats.win_rate >= 50 ? '#10b981' : '#ef4444'}
+              />
+              <StatCard 
+                title="Profit Factor" 
+                value={stats.profit_factor} 
+                icon={<BarChart3 size={18} />} 
+                color="#00d4ff"
+              />
+              <StatCard 
+                title="Expectancy" 
+                value={`$${stats.expectancy}`} 
+                icon={<Lightbulb size={18} />} 
+                color="#f59e0b"
+              />
+            </div>
+
+            {/* Summary Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ background: '#0a0a0f', padding: '16px', borderRadius: '12px', border: '1px solid #2a2a3e', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#6b7280' }}>Total P&L</p>
+                <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: stats.total_pnl >= 0 ? '#10b981' : '#ef4444' }}>
+                  {stats.total_pnl >= 0 ? '+' : ''}${stats.total_pnl?.toFixed(2)}
+                </p>
+              </div>
+              <div style={{ background: '#0a0a0f', padding: '16px', borderRadius: '12px', border: '1px solid #2a2a3e', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#6b7280' }}>Trades</p>
+                <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>{stats.total_trades}</p>
+              </div>
+              <div style={{ background: '#0a0a0f', padding: '16px', borderRadius: '12px', border: '1px solid #2a2a3e', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#6b7280' }}>W/L</p>
+                <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>
+                  <span style={{ color: '#10b981' }}>{stats.winning_trades}</span>
+                  <span style={{ color: '#6b7280', margin: '0 4px' }}>/</span>
+                  <span style={{ color: '#ef4444' }}>{stats.losing_trades}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Charts */}
+            {stats.history && stats.history.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                <MiniChart title="P&L %" data={stats.history.map((e, i) => ({ x: i, y: e.pnl_percent || 0 }))} color="#10b981" />
+                <MiniChart title="Win Rate Trend" data={stats.history.map((e, i) => ({ x: i, y: e.pnl && e.pnl > 0 ? 100 : 0 }))} color="#00d4ff" />
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -776,11 +813,46 @@ function StatCard({ title, value, icon, color }: { title: string; value: string 
       borderRadius: '12px',
       border: '1px solid #2a2a3e'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color }})>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color }}>
         {icon}
         <span style={{ fontSize: '12px', color: '#6b7280' }}>{title}</span>
       </div>
       <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color }}>{value}</p>
+    </div>
+  )
+}
+
+function MiniChart({ title, data, color }: { title: string; data: {x: number, y: number}[]; color: string }) {
+  const max = Math.max(...data.map(d => Math.abs(d.y)), 1)
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1 || 1)) * 100
+    const y = 50 - (d.y / max) * 40
+    return `${x},${y}`
+  }).join(' ')
+  
+  return (
+    <div style={{ background: '#0a0a0f', padding: '16px', borderRadius: '12px', border: '1px solid #2a2a3e' }}>
+      <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#6b7280' }}>{title}</p>
+      <svg viewBox="0 0 100 60" style={{ width: '100%', height: '80px' }}>
+        <defs>
+          <linearGradient id={`grad-${title}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.3 }} />
+            <stop offset="100%" style={{ stopColor: color, stopOpacity: 0 }} />
+          </linearGradient>
+        </defs>
+        <path
+          d={`M 0,50 ${points} L 100,50 Z`}
+          fill={`url(#grad-${title})`}
+        />
+        <polyline
+          points={points}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </div>
   )
 }

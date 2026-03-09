@@ -139,16 +139,52 @@ async def get_stats(user: dict = Depends(get_current_user)):
     entries = data["diary"].get(user["email"], [])
     closed = [e for e in entries if e.get("status") == "CLOSED"]
     total = len(closed)
-    wins = len([e for e in closed if e.get("pnl", 0) > 0])
-    losses = len([e for e in closed if e.get("pnl", 0) < 0])
+    
+    if total == 0:
+        return {
+            "total_trades": 0,
+            "winning_trades": 0,
+            "losing_trades": 0,
+            "total_pnl": 0,
+            "win_rate": 0,
+            "avg_win": 0,
+            "avg_loss": 0,
+            "profit_factor": 0,
+            "expectancy": 0,
+            "gain_percent": 0
+        }
+    
+    wins = [e for e in closed if e.get("pnl", 0) > 0]
+    losses = [e for e in closed if e.get("pnl", 0) < 0]
+    
     total_pnl = sum(e.get("pnl", 0) for e in closed)
-    win_rate = round((wins / total * 100), 2) if total > 0 else 0
+    win_rate = round((len(wins) / total * 100), 2)
+    
+    avg_win = round(sum(e.get("pnl", 0) for e in wins) / len(wins), 2) if wins else 0
+    avg_loss = round(sum(e.get("pnl", 0) for e in losses) / len(losses), 2) if losses else 0
+    
+    gross_profit = sum(e.get("pnl", 0) for e in wins)
+    gross_loss = abs(sum(e.get("pnl", 0) for e in losses))
+    profit_factor = round(gross_profit / gross_loss, 2) if gross_loss > 0 else 0
+    
+    expectancy = round((win_rate / 100 * avg_win) + ((100 - win_rate) / 100 * avg_loss), 2)
+    
+    # Calculate gain % based on avg position size
+    total_position = sum(e.get("position_size", 0) * e.get("entry_price", 0) for e in closed if e.get("position_size"))
+    gain_percent = round((total_pnl / total_position * 100), 2) if total_position > 0 else 0
+    
     return {
         "total_trades": total,
-        "winning_trades": wins,
-        "losing_trades": losses,
+        "winning_trades": len(wins),
+        "losing_trades": len(losses),
         "total_pnl": round(total_pnl, 2),
-        "win_rate": win_rate
+        "win_rate": win_rate,
+        "avg_win": avg_win,
+        "avg_loss": avg_loss,
+        "profit_factor": profit_factor,
+        "expectancy": expectancy,
+        "gain_percent": gain_percent,
+        "history": closed[-30:]  # Last 30 trades for charts
     }
 
 @app.get("/health")
