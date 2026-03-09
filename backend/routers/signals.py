@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from datetime import datetime
 
 from services.signal_generator_dynamic import signal_generator, start_signal_generation

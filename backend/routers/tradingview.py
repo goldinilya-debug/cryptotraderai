@@ -4,7 +4,7 @@ TradingView Webhook Integration
 """
 from fastapi import APIRouter, HTTPException, Header, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic.v1 import BaseModel, Field
 from typing import Optional, Literal
 from datetime import datetime
 import os

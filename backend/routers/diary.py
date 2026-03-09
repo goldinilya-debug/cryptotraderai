@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
+from pydantic.v1 import BaseModel, Field
 from typing import Optional, List
 from datetime import date, datetime
 from uuid import uuid4

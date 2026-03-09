@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, EmailStr
+from pydantic.v1 import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import timedelta
 from uuid import uuid4

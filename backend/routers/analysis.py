@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic.v1 import BaseModel
 from typing import List, Dict
 
 router = APIRouter()
