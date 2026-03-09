@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import Dict, List, Optional
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 
 from services.ml_engine import signal_ml
 

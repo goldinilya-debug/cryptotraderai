@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic.v1 import BaseModel, EmailStr
+from pydantic import BaseModel, validator
 from typing import Optional, List
 from datetime import timedelta
 from uuid import uuid4
@@ -13,12 +13,24 @@ security = HTTPBearer()
 
 # Request/Response Models
 class UserRegister(BaseModel):
-    email: EmailStr
+    email: str
     password: str
+    
+    @validator('email')
+    def validate_email(cls, v):
+        if '@' not in v:
+            raise ValueError('Invalid email')
+        return v.lower()
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str
     password: str
+    
+    @validator('email')
+    def validate_email(cls, v):
+        if '@' not in v:
+            raise ValueError('Invalid email')
+        return v.lower()
 
 class TokenResponse(BaseModel):
     access_token: str
