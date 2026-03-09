@@ -41,9 +41,12 @@ export default function DashboardPage() {
   }, [])
 
   const getKillZone = () => {
-    // Используем локальное время пользователя
-    const hour = new Date().getHours()
-    // Asian: 20:00-08:00, London: 08:00-16:00, New York: 13:00-21:00, London Close: 14:00-16:00
+    // Время Израиля (GMT+3)
+    const now = new Date()
+    const israelTime = new Date(now.getTime() + (3 * 60 * 60 * 1000)) // GMT+3
+    const hour = israelTime.getUTCHours()
+    
+    // Asian: 00:00-08:00, London: 08:00-16:00, New York: 13:00-21:00, London Close: 14:00-16:00
     if (hour >= 20 || hour < 8) return { name: 'Asian', color: '#f59e0b', active: true }
     if (hour >= 8 && hour < 16) return { name: 'London', color: '#3b82f6', active: true }
     if (hour >= 13 && hour < 21) return { name: 'New York', color: '#10b981', active: true }
