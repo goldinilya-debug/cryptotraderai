@@ -2,11 +2,12 @@ from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 import hashlib
 import json
 import os
+from jose import jwt
 
 app = FastAPI(title="CryptoTraderAI API", version="3.2.0")
 
@@ -19,6 +20,8 @@ app.add_middleware(
 )
 
 DATA_FILE = "data.json"
+SECRET_KEY = os.getenv("SECRET_KEY", "secret-key-change-in-production")
+ALGORITHM = "HS256"
 
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -34,7 +37,8 @@ def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 def create_token(user_id, email):
-    return hashlib.sha256(f"{user_id}:{email}:secret".encode()).hexdigest()
+    expire = datetime.utcnow() + timedelta(days=7)
+    return jwt.encode({"sub": user_id, "email": email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
 
 class RegisterRequest(BaseModel):
     email: str
@@ -89,13 +93,11 @@ async def get_current_user(authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing token")
     token = authorization.split(" ")[1]
-    # Find user by token
-    data = load_data()
-    for email, user_data in data["users"].items():
-        expected_token = create_token(user_data["id"], email)
-        if expected_token == token:
-            return {"email": email, "user_id": user_data["id"]}
-    raise HTTPException(status_code=401, detail="Invalid token")
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return {"email": payload["email"], "user_id": payload["sub"]}
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.post("/api/diary/entries")
 async def create_entry(entry: DiaryEntry, user: dict = Depends(get_current_user)):
