@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { 
   LayoutDashboard, 
   Activity, 
@@ -39,6 +40,18 @@ const menuItems = [
   { href: '/telegram', label: 'Telegram', icon: MessageCircle },
   { href: '/profile', label: 'Profile', icon: User },
 ]
+
+// Функция определения Kill Zone (время Израиля GMT+3)
+const getKillZone = () => {
+  const now = new Date()
+  const israelTime = new Date(now.getTime() + (3 * 60 * 60 * 1000))
+  const hour = israelTime.getUTCHours()
+  
+  if (hour >= 20 || hour < 8) return { name: 'Asian', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.1)' }
+  if (hour >= 8 && hour < 16) return { name: 'London', color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)' }
+  if (hour >= 13 && hour < 21) return { name: 'New York', color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)' }
+  return { name: 'Asian', color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.1)' }
+}
 
 // Inline styles for static export
 const styles = {
@@ -91,26 +104,26 @@ const styles = {
     color: '#6b7280',
     marginBottom: '8px',
   },
-  killzoneBadge: {
+  killzoneBadge: (color: string, bgColor: string) => ({
     padding: '10px 12px',
-    background: 'rgba(16, 185, 129, 0.1)',
+    background: bgColor,
     borderRadius: '8px',
-    border: '1px solid #10b981',
+    border: `1px solid ${color}`,
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-  },
-  killzoneDot: {
+  }),
+  killzoneDot: (color: string) => ({
     width: '8px',
     height: '8px',
     borderRadius: '50%',
-    background: '#10b981',
-  },
-  killzoneText: {
-    color: '#10b981',
+    background: color,
+  }),
+  killzoneText: (color: string) => ({
+    color: color,
     fontWeight: 'bold',
     fontSize: '14px',
-  },
+  }),
   killzoneSub: {
     fontSize: '11px',
     color: '#6b7280',
@@ -181,6 +194,15 @@ const styles = {
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const [killZone, setKillZone] = useState(getKillZone())
+  
+  // Обновляем Kill Zone каждую минуту
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setKillZone(getKillZone())
+    }, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <div style={styles.container}>
@@ -199,9 +221,9 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         {/* Kill Zone */}
         <div style={styles.killzone}>
           <p style={styles.killzoneLabel}>Active Kill Zone</p>
-          <div style={styles.killzoneBadge}>
-            <span style={styles.killzoneDot} />
-            <span style={styles.killzoneText}>NEW YORK</span>
+          <div style={styles.killzoneBadge(killZone.color, killZone.bgColor)}>
+            <span style={styles.killzoneDot(killZone.color)} />
+            <span style={styles.killzoneText(killZone.color)}>{killZone.name.toUpperCase()}</span>
           </div>
           <p style={styles.killzoneSub}>High volatility expected</p>
         </div>
