@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from datetime import timedelta
 from uuid import uuid4
@@ -16,7 +16,7 @@ class UserRegister(BaseModel):
     email: str
     password: str
     
-    @validator('email')
+    @field_validator('email')
     def validate_email(cls, v):
         if '@' not in v:
             raise ValueError('Invalid email')
@@ -26,7 +26,7 @@ class UserLogin(BaseModel):
     email: str
     password: str
     
-    @validator('email')
+    @field_validator('email')
     def validate_email(cls, v):
         if '@' not in v:
             raise ValueError('Invalid email')
