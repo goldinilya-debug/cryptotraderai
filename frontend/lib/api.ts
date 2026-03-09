@@ -1,4 +1,4 @@
-const API_URL = 'https://cryptotraderai-diary.onrender.com';
+const API_URL = 'https://cryptotraderai-api.onrender.com';
 
 // Helper to get auth token
 const getToken = () => {
