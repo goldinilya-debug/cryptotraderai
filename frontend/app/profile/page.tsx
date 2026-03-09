@@ -6,7 +6,7 @@ import {
   ArrowLeft, User, Key, Shield, Landmark, Check, AlertCircle, 
   BookOpen, LogOut, Loader2
 } from 'lucide-react'
-import { authAPI } from '@/lib/api'
+import { authAPI } from '../../lib/api'
 
 const EXCHANGES = [
   { id: 'bingx', name: 'BingX', logo: '🔵', color: '#1E90FF' },

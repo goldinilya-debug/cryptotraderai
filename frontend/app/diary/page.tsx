@@ -8,7 +8,7 @@ import {
   Target, AlertTriangle, Lightbulb, Image as ImageIcon,
   X, ChevronLeft, ChevronRight
 } from 'lucide-react'
-import { diaryAPI } from '@/lib/api'
+import { diaryAPI } from '../../lib/api'
 
 interface DiaryEntry {
   id: string
