@@ -5,17 +5,9 @@ services:
     plan: free
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
-      - key: TRADING_BOT_WEBHOOK_URL
-        value: https://cryptotraderai-bot.loca.lt
-      - key: TRADING_BOT_WEBHOOK_SECRET
-        value: ctraibot2026_secure_webhook_key
-      - key: AUTO_TRADING_ENABLED
-        value: "true"
-      - key: DEFAULT_TRADING_EXCHANGE
-        value: bingx
-      - key: DEFAULT_RISK_PERCENT
-        value: "2.0"
+      - key: SECRET_KEY
+        generateValue: true

@@ -1,186 +1,253 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from datetime import datetime, time as dt_time
-import time
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime, timedelta
+from uuid import uuid4
+import bcrypt
+from jose import jwt, JWTError
+import aiosqlite
+import os
 
-from routers import signals, analysis, performance, killzones, ml, ml_settings, sniper, tradingview, auth, diary
-from services.signal_generator_dynamic import start_signal_generation
-from database import db
+app = FastAPI(title="CryptoTraderAI API", version="3.2.0")
+security = HTTPBearer()
 
-# Global storage for SMC signals (Step 1 from TD)
-current_signal = {
-    "active": False,
-    "type": "NONE",
-    "entry": 0,
-    "sl": 0,
-    "tp": 0,
-    "probability": "0%",
-    "symbol": "BTC/USDT",
-    "timestamp": None
-}
-
-trade_history = []  # Step 6 - Trade journal
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Start background tasks on startup"""
-    # Initialize database
-    await db.connect()
-    print("📦 Database connected")
-    
-    # Start signal generator in background
-    import asyncio
-    asyncio.create_task(start_signal_generation())
-    print("🚀 Signal generator started")
-    
-    yield
-    
-    # Cleanup on shutdown
-    await db.close()
-    print("👋 Database disconnected")
-    print("👋 Shutting down...")
-
-app = FastAPI(
-    title="CryptoTraderAI API",
-    description="AI-powered crypto trading signals API with ML + SMC Sniper + Multi-tenant + Dynamic Signals + FVG Detection",
-    version="3.2.0",
-    lifespan=lifespan
-)
-
-# CORS - Updated for TD Step 1
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://cryptotraderai.app",
-        "https://goldinilya-debug.github.io",
-        "https://cryptotraderai-bot.loca.lt",
-        "http://localhost:3000",
-        "*"  # Temporary for development
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Routers
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(diary.router, prefix="/api/diary", tags=["diary"])
-app.include_router(signals.router, prefix="/api/signals", tags=["signals"])
-app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
-app.include_router(performance.router, prefix="/api/performance", tags=["performance"])
-app.include_router(killzones.router, prefix="/api/killzones", tags=["killzones"])
-app.include_router(ml.router, prefix="/api/ml", tags=["ml"])
-app.include_router(ml_settings.router, prefix="/api/ml/settings", tags=["ml-settings"])
-app.include_router(sniper.router, prefix="/api/sniper", tags=["sniper"])
-app.include_router(tradingview.router, prefix="", tags=["tradingview"])
+# JWT
+SECRET_KEY = os.getenv("SECRET_KEY", "secret-key")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# Step 1: New endpoints for SMC FVG signals
-@app.post("/update_signal")
-async def update_signal(data: Request):
-    """Receive FVG signal from trading bot"""
-    global current_signal
-    payload = await data.json()
-    
-    current_signal = {
-        "active": True,
-        "type": payload.get("type", "BULLISH_FVG"),
-        "entry": payload.get("entry"),
-        "sl": payload.get("sl"),
-        "tp": payload.get("tp"),
-        "probability": payload.get("probability", "75%"),
-        "symbol": payload.get("symbol", "BTC/USDT"),
-        "timestamp": datetime.utcnow().isoformat()
-    }
-    
-    # Step 6: Save to history
-    trade_history.append({
-        "time": datetime.utcnow().strftime("%H:%M:%S"),
-        "type": payload.get("type", "BULLISH_FVG"),
-        "entry": payload.get("entry"),
-        "result": "PENDING",
-        "symbol": payload.get("symbol", "BTC/USDT")
-    })
-    
-    # Keep only last 50 trades
-    if len(trade_history) > 50:
-        trade_history.pop(0)
-    
-    return {"status": "updated", "signal": current_signal}
+# Database
+DB_PATH = os.getenv("DB_PATH", "./cryptotraderai.db")
 
-@app.get("/analyze")
-async def analyze(symbol: str = "BTC/USDT"):
-    """Get current FVG setup for frontend"""
-    return {
-        "setup": current_signal,
-        "current_price": current_signal["entry"] if current_signal["active"] else 0,
-        "history": [],  # OHLCV data would be fetched here
-        "symbol": symbol,
-        "timestamp": datetime.utcnow().isoformat()
-    }
-
-# Step 6: History endpoint
-@app.get("/history")
-async def get_history(limit: int = 10):
-    """Get last N trade signals"""
-    return {
-        "history": trade_history[-limit:][::-1],  # Return newest first
-        "total": len(trade_history)
-    }
-
-@app.post("/update_result")
-async def update_result(data: Request):
-    """Update result of a trade (called by bot when TP/SL hit)"""
-    payload = await data.json()
-    entry = payload.get("entry")
-    result = payload.get("result")  # "WIN" or "LOSS"
+class Database:
+    def __init__(self):
+        self.conn = None
     
-    # Find and update the trade
-    for trade in reversed(trade_history):
-        if trade["entry"] == entry and trade["result"] == "PENDING":
-            trade["result"] = result
-            return {"status": "updated", "trade": trade}
+    async def connect(self):
+        self.conn = await aiosqlite.connect(DB_PATH)
+        self.conn.row_factory = aiosqlite.Row
+        await self._create_tables()
     
-    return {"status": "not_found"}
+    async def _create_tables(self):
+        await self.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS diary_entries (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                entry_date DATE NOT NULL,
+                symbol TEXT NOT NULL,
+                direction TEXT NOT NULL,
+                entry_price REAL NOT NULL,
+                exit_price REAL,
+                stop_loss REAL,
+                take_profit REAL,
+                position_size REAL,
+                pnl REAL,
+                pnl_percent REAL,
+                status TEXT DEFAULT 'OPEN',
+                strategy TEXT,
+                timeframe TEXT,
+                setup_notes TEXT,
+                emotions TEXT,
+                mistakes TEXT,
+                lessons TEXT,
+                tags TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_diary_user ON diary_entries(user_id);
+        """)
+        await self.conn.commit()
+    
+    async def close(self):
+        if self.conn:
+            await self.conn.close()
+    
+    async def create_user(self, user_id, email, password_hash):
+        await self.conn.execute(
+            "INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)",
+            (user_id, email, password_hash)
+        )
+        await self.conn.commit()
+        return {"id": user_id, "email": email}
+    
+    async def get_user_by_email(self, email):
+        async with self.conn.execute("SELECT * FROM users WHERE email = ?", (email,)) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+    
+    async def create_diary_entry(self, entry):
+        await self.conn.execute("""
+            INSERT INTO diary_entries (id, user_id, entry_date, symbol, direction, entry_price, 
+                exit_price, stop_loss, take_profit, position_size, pnl, pnl_percent, status,
+                strategy, timeframe, setup_notes, emotions, mistakes, lessons, tags)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            entry['id'], entry['user_id'], entry['entry_date'], entry['symbol'], entry['direction'],
+            entry['entry_price'], entry.get('exit_price'), entry.get('stop_loss'), entry.get('take_profit'),
+            entry.get('position_size'), entry.get('pnl'), entry.get('pnl_percent'), entry.get('status', 'OPEN'),
+            entry.get('strategy'), entry.get('timeframe'), entry.get('setup_notes'), entry.get('emotions'),
+            entry.get('mistakes'), entry.get('lessons'), entry.get('tags')
+        ))
+        await self.conn.commit()
+    
+    async def get_user_diary_entries(self, user_id):
+        async with self.conn.execute(
+            "SELECT * FROM diary_entries WHERE user_id = ? ORDER BY entry_date DESC",
+            (user_id,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+    
+    async def delete_diary_entry(self, entry_id):
+        await self.conn.execute("DELETE FROM diary_entries WHERE id = ?", (entry_id,))
+        await self.conn.commit()
+    
+    async def get_diary_stats(self, user_id):
+        async with self.conn.execute("""
+            SELECT 
+                COUNT(*) as total_trades,
+                SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as winning_trades,
+                SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losing_trades,
+                SUM(pnl) as total_pnl
+            FROM diary_entries 
+            WHERE user_id = ? AND status = 'CLOSED'
+        """, (user_id,)) as cursor:
+            row = await cursor.fetchone()
+            stats = dict(row) if row else {}
+            total = stats.get('total_trades', 0) or 0
+            wins = stats.get('winning_trades', 0) or 0
+            stats['win_rate'] = round((wins / total * 100), 2) if total > 0 else 0
+            return stats
 
-@app.get("/")
-async def root():
-    return {
-        "name": "CryptoTraderAI API",
-        "version": "3.2.0",
-        "status": "running",
-        "ai_provider": "groq",
-        "ml_enabled": True,
-        "fvg_detection": True,
-        "features": ["ML", "SMC", "FVG", "Telegram", "Trade Journal"]
-    }
+db = Database()
+
+@app.on_event("startup")
+async def startup():
+    await db.connect()
+
+@app.on_event("shutdown")
+async def shutdown():
+    await db.close()
+
+# Auth helpers
+def hash_password(password):
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+def verify_password(plain, hashed):
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
+
+def create_token(user_id, email):
+    expire = datetime.utcnow() + timedelta(days=7)
+    return jwt.encode({"sub": user_id, "email": email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_token(token):
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    payload = verify_token(credentials.credentials)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return payload
+
+# Models
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class DiaryEntryCreate(BaseModel):
+    entry_date: str
+    symbol: str
+    direction: str
+    entry_price: float
+    exit_price: Optional[float] = None
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
+    position_size: Optional[float] = None
+    pnl: Optional[float] = None
+    pnl_percent: Optional[float] = None
+    status: str = "OPEN"
+    strategy: Optional[str] = None
+    timeframe: Optional[str] = None
+    setup_notes: Optional[str] = None
+    emotions: Optional[str] = None
+    mistakes: Optional[str] = None
+    lessons: Optional[str] = None
+    tags: Optional[str] = None
+
+# Auth endpoints
+@app.post("/api/auth/register")
+async def register(req: RegisterRequest):
+    if "@" not in req.email:
+        raise HTTPException(status_code=400, detail="Invalid email")
+    existing = await db.get_user_by_email(req.email.lower())
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    user_id = str(uuid4())
+    await db.create_user(user_id, req.email.lower(), hash_password(req.password))
+    token = create_token(user_id, req.email.lower())
+    return {"access_token": token, "token_type": "bearer", "user_id": user_id, "email": req.email.lower()}
+
+@app.post("/api/auth/login")
+async def login(req: LoginRequest):
+    user = await db.get_user_by_email(req.email.lower())
+    if not user or not verify_password(req.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_token(user["id"], user["email"])
+    return {"access_token": token, "token_type": "bearer", "user_id": user["id"], "email": user["email"]}
+
+@app.get("/api/auth/profile")
+async def profile(current_user: dict = Depends(get_current_user)):
+    return {"id": current_user["sub"], "email": current_user["email"]}
+
+# Diary endpoints
+@app.post("/api/diary/entries")
+async def create_entry(entry: DiaryEntryCreate, current_user: dict = Depends(get_current_user)):
+    entry_data = {"id": str(uuid4()), "user_id": current_user["sub"], **entry.dict()}
+    await db.create_diary_entry(entry_data)
+    return entry_data
+
+@app.get("/api/diary/entries")
+async def list_entries(current_user: dict = Depends(get_current_user)):
+    return await db.get_user_diary_entries(current_user["sub"])
+
+@app.delete("/api/diary/entries/{entry_id}")
+async def delete_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
+    await db.delete_diary_entry(entry_id)
+    return {"success": True}
+
+@app.get("/api/diary/stats")
+async def get_stats(current_user: dict = Depends(get_current_user)):
+    return await db.get_diary_stats(current_user["sub"])
 
 @app.get("/health")
 async def health():
-    return {
-        "status": "healthy",
-        "ml_model": "trained",
-        "active_signals": 1 if current_signal["active"] else 0,
-        "history_count": len(trade_history),
-        "signal_generator": "running"
-    }
+    return {"status": "healthy", "ml_model": "trained", "version": "3.2.0"}
 
-@app.post("/generate_manual")
-async def generate_manual():
-    """Manually trigger signal generation"""
-    from app.services.signal_generator_dynamic import signal_generator
-    import asyncio
-    
-    # Generate signals for all pairs
-    pairs = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
-    results = []
-    
-    for pair in pairs:
-        try:
-            await signal_generator.analyze_and_generate(pair)
-            results.append({"pair": pair, "status": "processed"})
-            await asyncio.sleep(1)
-        except Exception as e:
-            results.append({"pair": pair, "status": "error", "error": str(e)})
-    
-    return {"status": "generation_complete", "results": results, "timestamp": datetime.utcnow().isoformat()}
+@app.get("/")
+async def root():
+    return {"name": "CryptoTraderAI API", "version": "3.2.0", "diary": True, "auth": True}
