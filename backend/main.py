@@ -1,8 +1,15 @@
-# Entry point for Render deployment
+# Simple entry point - no relative imports issue
 import sys
-sys.path.insert(0, '/opt/render/project/src/backend')
+import os
 
-from app.main import app
+# Add the backend directory to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Now import app
+from app.main import app as application
+
+# Expose as 'app' for uvicorn
+app = application
 
 if __name__ == "__main__":
     import uvicorn
