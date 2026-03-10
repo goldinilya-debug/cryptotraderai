@@ -1,18 +1,24 @@
-import type { Metadata } from 'next'
+'use client'
+
 import { Inter } from 'next/font/google'
+import { useEffect } from 'react'
 
 const inter = Inter({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
-  title: 'CryptoTraderAI — AI Trading Signals',
-  description: 'AI-powered cryptocurrency trading signals with Wyckoff analysis, SMC, and Kill Zones',
-}
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  useEffect(() => {
+    // Handle SPA routing for GitHub Pages
+    const params = new URLSearchParams(window.location.search)
+    const path = params.get('__path')
+    if (path) {
+      window.history.replaceState({}, '', path)
+    }
+  }, [])
+
   return (
     <html lang="en">
       <head>
