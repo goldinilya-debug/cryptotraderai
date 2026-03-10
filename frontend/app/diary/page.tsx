@@ -8,7 +8,7 @@ import {
   Target, AlertTriangle, Lightbulb, Image as ImageIcon,
   X, ChevronLeft, ChevronRight
 } from 'lucide-react'
-import { diaryAPI } from '../../lib/api'
+import { diaryAPI, authAPI } from '../../lib/api'
 
 interface DiaryEntry {
   id: string
@@ -63,6 +63,15 @@ export default function DiaryPage() {
     lessons_learned: ''
   })
   const [calendar, setCalendar] = useState<Record<string, any>>({})
+  
+  // Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [authEmail, setAuthEmail] = useState('')
+  const [authPassword, setAuthPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [user, setUser] = useState<{email: string, user_id: string} | null>(null)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -148,6 +157,58 @@ export default function DiaryPage() {
       loadJournal()
     }
   }, [selectedDate, activeTab])
+
+  // Check auth on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const savedUser = localStorage.getItem('user')
+    if (token && savedUser) {
+      setIsAuthenticated(true)
+      setUser(JSON.parse(savedUser))
+    } else {
+      setShowAuth(true)
+    }
+  }, [])
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthError('')
+    try {
+      const response = await authAPI.login(authEmail, authPassword)
+      localStorage.setItem('token', response.access_token)
+      localStorage.setItem('user', JSON.stringify({ email: response.email, user_id: response.user_id }))
+      setIsAuthenticated(true)
+      setUser({ email: response.email, user_id: response.user_id })
+      setShowAuth(false)
+      loadData()
+    } catch (error: any) {
+      setAuthError(error.message || 'Ошибка входа')
+    }
+  }
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthError('')
+    try {
+      const response = await authAPI.register(authEmail, authPassword)
+      localStorage.setItem('token', response.access_token)
+      localStorage.setItem('user', JSON.stringify({ email: response.email, user_id: response.user_id }))
+      setIsAuthenticated(true)
+      setUser({ email: response.email, user_id: response.user_id })
+      setShowAuth(false)
+      loadData()
+    } catch (error: any) {
+      setAuthError(error.message || 'Ошибка регистрации')
+    }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setIsAuthenticated(false)
+    setUser(null)
+    setShowAuth(true)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -241,6 +302,124 @@ export default function DiaryPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#fff' }}>
+      {/* Auth Modal */}
+      {showAuth && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: '#13131f',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '400px',
+            padding: '32px'
+          }}>
+            <h2 style={{ margin: '0 0 24px 0', textAlign: 'center' }}>
+              {authMode === 'login' ? 'Вход' : 'Регистрация'}
+            </h2>
+            
+            {authError && (
+              <div style={{
+                padding: '12px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                color: '#ef4444',
+                fontSize: '14px'
+              }}>
+                {authError}
+              </div>
+            )}
+            
+            <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#9ca3af' }}>Email</label>
+                <input
+                  type="email"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: '#0a0a0f',
+                    border: '1px solid #2a2a3e',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#9ca3af' }}>Пароль</label>
+                <input
+                  type="password"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: '#0a0a0f',
+                    border: '1px solid #2a2a3e',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+              
+              <button
+                type="submit"
+                style={{
+                  padding: '14px',
+                  background: '#00d4ff',
+                  color: '#0a0a0f',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  marginTop: '8px'
+                }}
+              >
+                {authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}
+              </button>
+            </form>
+            
+            <p style={{ textAlign: 'center', marginTop: '24px', color: '#6b7280', fontSize: '14px' }}>
+              {authMode === 'login' ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}{' '}
+              <button
+                onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); }}
+                style={{
+                  color: '#00d4ff',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                {authMode === 'login' ? 'Зарегистрироваться' : 'Войти'}
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ padding: '20px', borderBottom: '1px solid #2a2a3e', background: '#13131f' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -253,24 +432,60 @@ export default function DiaryPage() {
               Торговый дневник
             </h1>
           </div>
-          <button
-            onClick={() => { setShowForm(true); setEditingEntry(null); resetForm(); }}
-            style={{
-              padding: '12px 20px',
-              background: '#00d4ff',
-              color: '#0a0a0f',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              display: activeTab === 'trades' ? 'flex' : 'none',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <Plus size={18} /> Новая сделка
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {isAuthenticated && user && (
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>{user.email}</span>
+            )}
+            {isAuthenticated ? (
+              <button
+                onClick={handleLogout}
+                style={{
+                  padding: '8px 16px',
+                  background: 'transparent',
+                  color: '#ef4444',
+                  border: '1px solid #ef4444',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Выйти
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAuth(true)}
+                style={{
+                  padding: '8px 16px',
+                  background: '#00d4ff',
+                  color: '#0a0a0f',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Войти
+              </button>
+            )}
+            <button
+              onClick={() => { setShowForm(true); setEditingEntry(null); resetForm(); }}
+              style={{
+                padding: '12px 20px',
+                background: '#00d4ff',
+                color: '#0a0a0f',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: activeTab === 'trades' ? 'flex' : 'none',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <Plus size={18} /> Новая сделка
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
