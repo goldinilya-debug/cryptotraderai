@@ -6,8 +6,9 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 import hashlib
 import os
+import sqlite3
+from contextlib import contextmanager
 from jose import jwt
-import aiosqlite
 
 app = FastAPI(title="CryptoTraderAI API", version="3.3.0")
 
@@ -23,9 +24,9 @@ DB_PATH = os.getenv("DB_PATH", "./diary.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "secret-key-change-in-production")
 ALGORITHM = "HS256"
 
-async def init_db():
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.executescript("""
+def init_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.executescript("""
             CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
                 email TEXT UNIQUE NOT NULL,
@@ -69,11 +70,10 @@ async def init_db():
             CREATE INDEX IF NOT EXISTS idx_entries_user ON diary_entries(user_id);
             CREATE INDEX IF NOT EXISTS idx_entries_date ON diary_entries(entry_date);
         """)
-        await db.commit()
+        conn.commit()
 
-@app.on_event("startup")
-async def startup():
-    await init_db()
+# Init on startup
+init_db()
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -82,7 +82,7 @@ def create_token(user_id, email):
     expire = datetime.utcnow() + timedelta(days=7)
     return jwt.encode({"sub": user_id, "email": email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
 
-async def get_current_user(authorization: str = Header(None)):
+def get_current_user(authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing token")
     token = authorization.split(" ")[1]
@@ -128,39 +128,41 @@ class DailyJournal(BaseModel):
     lessons_learned: Optional[str] = None
 
 @app.post("/api/auth/register")
-async def register(req: RegisterRequest):
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT id FROM users WHERE email = ?", (req.email.lower(),)) as cursor:
-            if await cursor.fetchone():
-                raise HTTPException(status_code=400, detail="Email already registered")
+def register(req: RegisterRequest):
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM users WHERE email = ?", (req.email.lower(),))
+        if cur.fetchone():
+            raise HTTPException(status_code=400, detail="Email already registered")
         user_id = str(uuid4())
-        await db.execute(
+        cur.execute(
             "INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)",
             (user_id, req.email.lower(), hash_password(req.password))
         )
-        await db.commit()
+        conn.commit()
     token = create_token(user_id, req.email.lower())
     return {"access_token": token, "token_type": "bearer", "user_id": user_id, "email": req.email.lower()}
 
 @app.post("/api/auth/login")
-async def login(req: LoginRequest):
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT id, password_hash FROM users WHERE email = ?", (req.email.lower(),)) as cursor:
-            row = await cursor.fetchone()
+def login(req: LoginRequest):
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, password_hash FROM users WHERE email = ?", (req.email.lower(),))
+        row = cur.fetchone()
     if not row or row[1] != hash_password(req.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token(row[0], req.email.lower())
     return {"access_token": token, "token_type": "bearer", "user_id": row[0], "email": req.email.lower()}
 
 @app.get("/api/auth/profile")
-async def profile(current_user: dict = Depends(get_current_user)):
+def profile(current_user: dict = Depends(get_current_user)):
     return {"id": current_user["user_id"], "email": current_user["email"]}
 
 @app.post("/api/diary/entries")
-async def create_entry(entry: DiaryEntry, current_user: dict = Depends(get_current_user)):
+def create_entry(entry: DiaryEntry, current_user: dict = Depends(get_current_user)):
     entry_id = str(uuid4())
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
             INSERT INTO diary_entries (id, user_id, entry_date, symbol, direction, entry_price,
                 exit_price, stop_loss, take_profit, position_size, pnl, pnl_percent, status,
                 strategy, timeframe, setup_notes, emotions, mistakes, lessons)
@@ -170,24 +172,24 @@ async def create_entry(entry: DiaryEntry, current_user: dict = Depends(get_curre
               entry.position_size, entry.pnl, entry.pnl_percent, entry.status,
               entry.strategy, entry.timeframe, entry.setup_notes, entry.emotions,
               entry.mistakes, entry.lessons))
-        await db.commit()
+        conn.commit()
     return {"id": entry_id, **entry.dict()}
 
 @app.get("/api/diary/entries")
-async def list_entries(current_user: dict = Depends(get_current_user)):
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
+def list_entries(current_user: dict = Depends(get_current_user)):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute(
             "SELECT * FROM diary_entries WHERE user_id = ? ORDER BY entry_date DESC",
             (current_user["user_id"],)
-        ) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+        )
+        return [dict(row) for row in cur.fetchall()]
 
 @app.patch("/api/diary/entries/{entry_id}")
-async def update_entry(entry_id: str, updates: DiaryEntry, current_user: dict = Depends(get_current_user)):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
+def update_entry(entry_id: str, updates: DiaryEntry, current_user: dict = Depends(get_current_user)):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
             UPDATE diary_entries SET
                 entry_date = ?, symbol = ?, direction = ?, entry_price = ?,
                 exit_price = ?, stop_loss = ?, take_profit = ?, position_size = ?,
@@ -199,21 +201,22 @@ async def update_entry(entry_id: str, updates: DiaryEntry, current_user: dict = 
               updates.pnl, updates.pnl_percent, updates.status, updates.strategy, updates.timeframe,
               updates.setup_notes, updates.emotions, updates.mistakes, updates.lessons,
               entry_id, current_user["user_id"]))
-        await db.commit()
+        conn.commit()
     return {"success": True}
 
 @app.delete("/api/diary/entries/{entry_id}")
-async def delete_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM diary_entries WHERE id = ? AND user_id = ?",
-                        (entry_id, current_user["user_id"]))
-        await db.commit()
+def delete_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("DELETE FROM diary_entries WHERE id = ? AND user_id = ?",
+                    (entry_id, current_user["user_id"]))
+        conn.commit()
     return {"success": True}
 
 @app.get("/api/diary/stats")
-async def get_stats(current_user: dict = Depends(get_current_user)):
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("""
+def get_stats(current_user: dict = Depends(get_current_user)):
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("""
             SELECT COUNT(*) as total,
                    SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
                    SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losses,
@@ -221,28 +224,28 @@ async def get_stats(current_user: dict = Depends(get_current_user)):
                    AVG(CASE WHEN pnl > 0 THEN pnl END) as avg_win,
                    AVG(CASE WHEN pnl < 0 THEN pnl END) as avg_loss
             FROM diary_entries WHERE user_id = ? AND status = 'CLOSED'
-        """, (current_user["user_id"],)) as cursor:
-            row = await cursor.fetchone()
-            total, wins, losses, total_pnl, avg_win, avg_loss = row
-            
-            total = total or 0
-            wins = wins or 0
-            losses = losses or 0
-            total_pnl = total_pnl or 0
-            avg_win = avg_win or 0
-            avg_loss = avg_loss or 0
-            
-            win_rate = round((wins / total * 100), 2) if total > 0 else 0
-            profit_factor = round(abs((avg_win * wins) / (avg_loss * losses)), 2) if losses > 0 and avg_loss != 0 else 0
-            expectancy = round((win_rate/100 * avg_win) + ((100-win_rate)/100 * avg_loss), 2)
-            
-            # Get history
-            db.row_factory = aiosqlite.Row
-            async with db.execute(
-                "SELECT * FROM diary_entries WHERE user_id = ? AND status = 'CLOSED' ORDER BY entry_date DESC LIMIT 30",
-                (current_user["user_id"],)
-            ) as cursor2:
-                history = [dict(r) for r in await cursor2.fetchall()]
+        """, (current_user["user_id"],))
+        row = cur.fetchone()
+        total, wins, losses, total_pnl, avg_win, avg_loss = row
+        
+        total = total or 0
+        wins = wins or 0
+        losses = losses or 0
+        total_pnl = total_pnl or 0
+        avg_win = avg_win or 0
+        avg_loss = avg_loss or 0
+        
+        win_rate = round((wins / total * 100), 2) if total > 0 else 0
+        profit_factor = round(abs((avg_win * wins) / (avg_loss * losses)), 2) if losses > 0 and avg_loss != 0 else 0
+        expectancy = round((win_rate/100 * avg_win) + ((100-win_rate)/100 * avg_loss), 2)
+        
+        # Get history
+        conn.row_factory = sqlite3.Row
+        cur.execute(
+            "SELECT * FROM diary_entries WHERE user_id = ? AND status = 'CLOSED' ORDER BY entry_date DESC LIMIT 30",
+            (current_user["user_id"],)
+        )
+        history = [dict(r) for r in cur.fetchall()]
     
     return {
         "total_trades": total,
@@ -259,47 +262,48 @@ async def get_stats(current_user: dict = Depends(get_current_user)):
     }
 
 @app.post("/api/diary/journal")
-async def save_journal(journal: DailyJournal, current_user: dict = Depends(get_current_user)):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
+def save_journal(journal: DailyJournal, current_user: dict = Depends(get_current_user)):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
             INSERT OR REPLACE INTO daily_journals
             (user_id, date, mood, market_condition, daily_goals, day_review, lessons_learned)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (current_user["user_id"], journal.date, journal.mood, journal.market_condition,
               journal.daily_goals, journal.day_review, journal.lessons_learned))
-        await db.commit()
+        conn.commit()
     return {"success": True}
 
 @app.get("/api/diary/journal/{date}")
-async def get_journal(date: str, current_user: dict = Depends(get_current_user)):
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
+def get_journal(date: str, current_user: dict = Depends(get_current_user)):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute(
             "SELECT * FROM daily_journals WHERE user_id = ? AND date = ?",
             (current_user["user_id"], date)
-        ) as cursor:
-            row = await cursor.fetchone()
+        )
+        row = cur.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Journal not found")
     return dict(row)
 
 @app.get("/api/diary/calendar")
-async def get_calendar(current_user: dict = Depends(get_current_user)):
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
+def get_calendar(current_user: dict = Depends(get_current_user)):
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
         # Get trades by date
-        async with db.execute(
+        cur.execute(
             "SELECT entry_date, COUNT(*) as trades, SUM(pnl) as pnl FROM diary_entries WHERE user_id = ? GROUP BY entry_date",
             (current_user["user_id"],)
-        ) as cursor:
-            trade_rows = await cursor.fetchall()
+        )
+        trade_rows = cur.fetchall()
         
         # Get journals
-        async with db.execute(
+        cur.execute(
             "SELECT date FROM daily_journals WHERE user_id = ?",
             (current_user["user_id"],)
-        ) as cursor:
-            journal_rows = await cursor.fetchall()
+        )
+        journal_rows = cur.fetchall()
     
     calendar = {}
     for row in trade_rows:
@@ -315,9 +319,9 @@ async def get_calendar(current_user: dict = Depends(get_current_user)):
     return calendar
 
 @app.get("/health")
-async def health():
+def health():
     return {"status": "healthy", "version": "3.3.0", "diary": True}
 
 @app.get("/")
-async def root():
+def root():
     return {"name": "CryptoTraderAI API", "version": "3.3.0", "diary": True}
