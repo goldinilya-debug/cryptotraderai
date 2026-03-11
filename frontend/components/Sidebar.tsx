@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { 
-  LayoutDashboard, 
+  LayoutDashboard,
+  Diary,
   Activity, 
   Search, 
   BarChart3, 
