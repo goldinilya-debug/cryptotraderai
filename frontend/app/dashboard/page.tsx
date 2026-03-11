@@ -84,9 +84,7 @@ export default function DashboardPage() {
                 fontSize: '14px',
                 fontWeight: 'bold'
               }}
-            >
-              
-            </a>
+          
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {lastUpdate && (
