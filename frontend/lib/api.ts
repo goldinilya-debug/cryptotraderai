@@ -80,16 +80,6 @@ export const diaryAPI = {
   getStats: () =>
     fetchWithAuth('/api/diary/stats'),
 
-  // Daily Journal
-  getJournal: (date: string) =>
-    fetchWithAuth(`/api/diary/journal/${date}`),
-
-  saveJournal: (journal: any) =>
-    fetchWithAuth('/api/diary/journal', {
-      method: 'POST',
-      body: JSON.stringify(journal),
-    }),
-
   // Calendar
   getCalendar: () =>
     fetchWithAuth('/api/diary/calendar'),
