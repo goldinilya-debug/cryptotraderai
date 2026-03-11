@@ -88,9 +88,7 @@ export default function DashboardPage() {
                 fontWeight: 'bold'
               }}
             >
-              <BookOpen size={18} />
-              Дневник
-              <ExternalLink size={14} />
+              
             </a>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
