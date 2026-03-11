@@ -25,6 +25,7 @@ import {
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/diary', label: 'Trading Journal', icon: BookOpen },
   { href: '/smc-analysis', label: 'SMC Real-Time', icon: ZapIcon },
   { href: '/signals', label: 'Signals', icon: Activity },
   { href: '/screener', label: 'Screener', icon: Search },
