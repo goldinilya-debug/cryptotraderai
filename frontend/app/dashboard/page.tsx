@@ -73,8 +73,7 @@ export default function DashboardPage() {
             
             <a 
                href="/diary"
-              target="_blank" 
-              rel="noopener noreferrer"
+            
               style={{
                 padding: '10px 16px',
                 background: '#13131f',
