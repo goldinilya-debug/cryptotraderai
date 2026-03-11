@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { 
   LayoutDashboard,
-  Diary,
+  BookOpen,
   Activity, 
   Search, 
   BarChart3, 
