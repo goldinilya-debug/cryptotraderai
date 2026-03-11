@@ -71,10 +71,7 @@ export default function DashboardPage() {
               <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>AI-powered crypto trading signals</p>
             </div>
             
-            <a 
-               href="/diary"
-            
-              style={{
+           
                 padding: '10px 16px',
                 background: '#13131f',
                 border: '1px solid #2a2a3e',
