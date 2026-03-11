@@ -21,7 +21,6 @@ import {
   Settings,
   Crosshair,
   ZapIcon,
-  BookOpen
 } from 'lucide-react'
 
 const menuItems = [
