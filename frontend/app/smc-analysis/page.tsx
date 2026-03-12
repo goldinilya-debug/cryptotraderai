@@ -112,7 +112,8 @@ export default function SMCAnalysisPage() {
       const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${TIMEFRAMES[selectedTF]}&limit=100`)
       const data = await res.json()
       if (!Array.isArray(data)) return
-      const candles = data.map((d: any[]) => ({ time: Math.floor(d[0] / 1000), open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }))
+      const tzOffset = new Date().getTimezoneOffset() * -60
+      const candles = data.map((d: any[]) => ({ time: Math.floor(d[0] / 1000) + tzOffset, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }))
       candleSeriesRef.current.setData(candles)
       if (candles.length > 0) setCurrentPrice(candles[candles.length - 1].close)
     } catch (e) { console.error('Chart error:', e) }
