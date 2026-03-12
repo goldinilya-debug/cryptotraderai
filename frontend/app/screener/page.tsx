@@ -1,260 +1,266 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '@/components/Sidebar'
-import { Search, Play, RefreshCw, Clock, Zap, Filter, ChevronDown } from 'lucide-react'
+import { Search, Play, RefreshCw, Clock, Zap, Filter, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+
+const API_URL = 'https://cryptotraderai.onrender.com'
+
+const ALL_PAIRS = [
+  'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'AVAX/USDT', 'BNB/USDT',
+  'DOT/USDT', 'ADA/USDT', 'LINK/USDT', 'MATIC/USDT', 'XRP/USDT'
+]
 
 interface ScreenerResult {
   pair: string
-  score: number
   price: number
+  change24h: number
+  volume24h: number
+  rsi: number
   trend: 'bullish' | 'bearish' | 'neutral'
-  smc: 'bullish' | 'bearish' | 'neutral'
-  wyckoff: string
   signal: string
   confidence: number
-  rr: string
+  score: number
 }
 
-const PAIRS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'AVAX/USDT', 'DOT/USDT']
+function getKillZone() {
+  const now = new Date()
+  const hour = (now.getUTCHours() + 3) % 24
+  if (hour >= 20 || hour < 8) return { name: 'Asian', color: '#f59e0b', active: true }
+  if (hour >= 13 && hour < 21) return { name: 'New York', color: '#10b981', active: true }
+  if (hour >= 8 && hour < 16) return { name: 'London', color: '#3b82f6', active: true }
+  return { name: 'None', color: '#6b7280', active: false }
+}
+
+async function fetchBinancePrice(symbol: string): Promise<{ price: number; change24h: number; volume: number } | null> {
+  try {
+    const binanceSymbol = symbol.replace('/', '')
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`)
+    const data = await res.json()
+    return {
+      price: parseFloat(data.lastPrice),
+      change24h: parseFloat(data.priceChangePercent),
+      volume: parseFloat(data.quoteVolume),
+    }
+  } catch {
+    return null
+  }
+}
+
+function calcRSI(prices: number[], period = 14): number {
+  if (prices.length < period + 1) return 50
+  let gains = 0, losses = 0
+  for (let i = prices.length - period; i < prices.length; i++) {
+    const diff = prices[i] - prices[i - 1]
+    if (diff > 0) gains += diff
+    else losses -= diff
+  }
+  const avgGain = gains / period
+  const avgLoss = losses / period
+  if (avgLoss === 0) return 100
+  const rs = avgGain / avgLoss
+  return Math.round(100 - 100 / (1 + rs))
+}
+
+async function analyzeRSI(symbol: string): Promise<number> {
+  try {
+    const binanceSymbol = symbol.replace('/', '')
+    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=4h&limit=30`)
+    const klines = await res.json()
+    const closes = klines.map((k: string[]) => parseFloat(k[4]))
+    return calcRSI(closes)
+  } catch {
+    return 50
+  }
+}
+
+function scoreResult(rsi: number, change24h: number, confidence: number): number {
+  let score = 0
+  if (rsi < 35) score += 30
+  else if (rsi > 65) score += 30
+  else score += 10
+  if (Math.abs(change24h) > 3) score += 20
+  else if (Math.abs(change24h) > 1) score += 10
+  score += Math.round(confidence * 0.5)
+  return Math.min(100, score)
+}
 
 export default function ScreenerPage() {
   const [isRunning, setIsRunning] = useState(false)
   const [timeframe, setTimeframe] = useState('4H')
-  const [minScore, setMinScore] = useState(50)
+  const [minScore, setMinScore] = useState(30)
   const [results, setResults] = useState<ScreenerResult[]>([])
   const [lastRun, setLastRun] = useState<Date | null>(null)
-  const [autoScreener, setAutoScreener] = useState(true)
+  const [autoScreener, setAutoScreener] = useState(false)
+  const [killZone, setKillZone] = useState(getKillZone())
+  const [progress, setProgress] = useState(0)
 
-  const runScreener = async () => {
+  useEffect(() => {
+    const interval = setInterval(() => setKillZone(getKillZone()), 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const runScreener = useCallback(async () => {
     setIsRunning(true)
-    
-    // Simulate screening
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    const mockResults = PAIRS.map(pair => ({
-      pair,
-      score: Math.floor(Math.random() * 40) + 20,
-      price: pair === 'BTC/USDT' ? 68726 : pair === 'ETH/USDT' ? 3450 : Math.random() * 200 + 50,
-      trend: (Math.random() > 0.5 ? 'bullish' : Math.random() > 0.5 ? 'bearish' : 'neutral') as 'bullish' | 'bearish' | 'neutral',
-      smc: (Math.random() > 0.5 ? 'bullish' : 'bearish') as 'bullish' | 'bearish',
-      wyckoff: ['Accumulation', 'Markup', 'Distribution', 'Markdown'][Math.floor(Math.random() * 4)],
-      signal: Math.random() > 0.7 ? (Math.random() > 0.5 ? 'LONG' : 'SHORT') : '—',
-      confidence: Math.floor(Math.random() * 30) + 60,
-      rr: Math.random() > 0.5 ? '1:2.5' : '—'
-    })).filter(r => r.score >= minScore)
+    setResults([])
+    setProgress(0)
 
-    setResults(mockResults)
+    const newResults: ScreenerResult[] = []
+
+    for (let i = 0; i < ALL_PAIRS.length; i++) {
+      const pair = ALL_PAIRS[i]
+      setProgress(Math.round((i / ALL_PAIRS.length) * 100))
+
+      const [ticker, rsi] = await Promise.all([
+        fetchBinancePrice(pair),
+        analyzeRSI(pair),
+      ])
+
+      if (!ticker) continue
+
+      const trend: 'bullish' | 'bearish' | 'neutral' =
+        rsi > 55 && ticker.change24h > 0 ? 'bullish' :
+        rsi < 45 && ticker.change24h < 0 ? 'bearish' : 'neutral'
+
+      const signal = rsi < 35 ? 'LONG' : rsi > 65 ? 'SHORT' : '—'
+      const confidence = signal !== '—' ? Math.min(95, 60 + Math.abs(50 - rsi)) : 0
+      const score = scoreResult(rsi, ticker.change24h, confidence)
+
+      newResults.push({
+        pair,
+        price: ticker.price,
+        change24h: ticker.change24h,
+        volume24h: ticker.volume,
+        rsi,
+        trend,
+        signal,
+        confidence: Math.round(confidence),
+        score,
+      })
+    }
+
+    const filtered = newResults
+      .filter(r => r.score >= minScore)
+      .sort((a, b) => b.score - a.score)
+
+    setResults(filtered)
     setLastRun(new Date())
     setIsRunning(false)
-  }
+    setProgress(100)
+  }, [minScore])
 
-  const getTrendColor = (trend: string) => {
-    switch(trend) {
-      case 'bullish': return '#10b981'
-      case 'bearish': return '#ef4444'
-      default: return '#6b7280'
-    }
-  }
+  // Auto-screener
+  useEffect(() => {
+    if (!autoScreener) return
+    const interval = setInterval(runScreener, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [autoScreener, runScreener])
 
-  const getScoreColor = (score: number) => {
-    if (score >= 70) return '#10b981'
-    if (score >= 50) return '#f59e0b'
-    return '#ef4444'
-  }
+  const getScoreColor = (s: number) => s >= 70 ? '#10b981' : s >= 50 ? '#f59e0b' : '#9ca3af'
+  const getRsiColor = (r: number) => r < 35 ? '#10b981' : r > 65 ? '#ef4444' : '#9ca3af'
 
   return (
     <Sidebar>
       <div style={{ padding: '24px' }}>
+
         {/* Header */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '28px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Search size={32} color="#00d4ff" />
-                Multi-Pair Screener
-              </h1>
-              <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>Automatically analyze watchlist pairs during Kill Zones</p>
-            </div>
-            
-            <button
-              onClick={runScreener}
-              disabled={isRunning}
-              style={{
-                padding: '12px 24px',
-                background: isRunning ? '#2a2a3e' : '#00d4ff',
-                color: '#0a0a0f',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                cursor: isRunning ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              {isRunning ? <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Play size={18} />}
-              {isRunning ? 'Screening...' : 'Refresh'}
-            </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '28px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Search size={28} color="#00d4ff" />
+              Multi-Pair Screener
+            </h1>
+            <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>Реальные цены с Binance · RSI анализ · {ALL_PAIRS.length} пар</p>
           </div>
+          <button onClick={runScreener} disabled={isRunning} style={{
+            padding: '12px 24px',
+            background: isRunning ? '#2a2a3e' : '#00d4ff',
+            color: '#0a0a0f', border: 'none', borderRadius: '8px',
+            fontWeight: 'bold', cursor: isRunning ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', gap: '8px',
+          }}>
+            {isRunning
+              ? <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
+              : <Play size={18} />}
+            {isRunning ? `Scanning... ${progress}%` : 'Run Screener'}
+          </button>
         </div>
+
+        {/* Progress bar */}
+        {isRunning && (
+          <div style={{ height: '4px', background: '#2a2a3e', borderRadius: '2px', marginBottom: '24px' }}>
+            <div style={{ height: '4px', background: '#00d4ff', borderRadius: '2px', width: `${progress}%`, transition: 'width 0.3s' }} />
+          </div>
+        )}
 
         {/* Control Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
-          {/* Kill Zone Status */}
+
+          {/* Kill Zone */}
           <div style={{ background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#6b7280' }}>
-              <Clock size={18} />
-              <span>Kill Zone Status</span>
+              <Clock size={18} /><span>Kill Zone</span>
             </div>
-            <div style={{ 
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              background: 'rgba(16, 185, 129, 0.1)',
-              borderRadius: '20px',
-              color: '#10b981',
-              fontWeight: 'bold',
-              fontSize: '14px'
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px',
+              background: killZone.active ? `${killZone.color}20` : '#2a2a3e',
+              color: killZone.active ? killZone.color : '#6b7280',
             }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
-              NEW YORK
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: killZone.active ? killZone.color : '#6b7280' }} />
+              {killZone.name.toUpperCase()}
             </div>
-            <p style={{ margin: '12px 0 0 0', fontSize: '13px', color: '#6b7280' }}>13:00 EST — 16:00 EST</p>
-            <span style={{ 
-              display: 'inline-block',
-              marginTop: '8px',
-              padding: '4px 12px',
-              background: 'rgba(245, 158, 11, 0.1)',
-              borderRadius: '12px',
-              fontSize: '12px',
-              color: '#f59e0b'
-            }}>
-              Volatility: medium
-            </span>
+            <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+              {killZone.active ? '🟢 Активная зона' : '⏳ Ожидание зоны'}
+            </p>
           </div>
 
           {/* Auto-Screener */}
           <div style={{ background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#6b7280' }}>
-              <Zap size={18} />
-              <span>Auto-Screener Scheduler</span>
+              <Zap size={18} /><span>Auto-Screener</span>
             </div>
-            
-            <p style={{ margin: '0 0 12px 0', fontWeight: 'bold' }}>Kill Zone Trigger</p>
-            <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#6b7280' }}>Auto-screen when entering a Kill Zone</p>
-            
-            <button
-              onClick={() => setAutoScreener(!autoScreener)}
-              style={{
-                width: '48px',
-                height: '26px',
-                borderRadius: '13px',
-                background: autoScreener ? '#10b981' : '#2a2a3e',
-                border: 'none',
-                cursor: 'pointer',
-                position: 'relative',
-                transition: 'background 0.3s'
-              }}
-            >
+            <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#9ca3af' }}>Запускать каждые 5 минут</p>
+            <button onClick={() => setAutoScreener(!autoScreener)} style={{
+              width: '48px', height: '26px', borderRadius: '13px',
+              background: autoScreener ? '#10b981' : '#2a2a3e',
+              border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.3s',
+            }}>
               <span style={{
-                position: 'absolute',
-                top: '3px',
+                position: 'absolute', top: '3px',
                 left: autoScreener ? '25px' : '3px',
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                background: '#fff',
-                transition: 'left 0.3s'
+                width: '20px', height: '20px', borderRadius: '50%',
+                background: '#fff', transition: 'left 0.3s',
               }} />
             </button>
-            
             {autoScreener && (
-              <div style={{ 
-                marginTop: '12px',
-                padding: '6px 12px',
-                background: 'rgba(16, 185, 129, 0.1)',
-                borderRadius: '6px',
-                fontSize: '12px',
-                color: '#10b981',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <Zap size={12} />
-                Active — checks every 5 min
-              </div>
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#10b981' }}>✅ Активен</div>
             )}
           </div>
 
-          {/* Manual Screening */}
+          {/* Filters */}
           <div style={{ background: '#13131f', padding: '20px', borderRadius: '12px', border: '1px solid #2a2a3e' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#6b7280' }}>
-              <Filter size={18} />
-              <span>Manual Screening</span>
+              <Filter size={18} /><span>Фильтры</span>
             </div>
-            
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-              <select
-                value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value)}
-                style={{
-                  padding: '10px 16px',
-                  background: '#0a0a0f',
-                  border: '1px solid #2a2a3e',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="1H">1H</option>
-                <option value="4H">4H</option>
-                <option value="1D">1D</option>
-              </select>
-              
-              <button
-                onClick={runScreener}
-                disabled={isRunning}
-                style={{
-                  flex: 1,
-                  padding: '10px 20px',
-                  background: isRunning ? '#2a2a3e' : '#00d4ff',
-                  color: '#0a0a0f',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: 'bold',
-                  cursor: isRunning ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}
-              >
-                <Play size={16} />
-                Run Screener ({PAIRS.length} pairs)
-              </button>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              {['1H', '4H', '1D'].map(tf => (
+                <button key={tf} onClick={() => setTimeframe(tf)} style={{
+                  padding: '6px 14px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px',
+                  background: timeframe === tf ? '#00d4ff' : '#2a2a3e',
+                  color: timeframe === tf ? '#0a0a0f' : '#9ca3af',
+                  fontWeight: timeframe === tf ? 'bold' : 'normal',
+                }}>{tf}</button>
+              ))}
             </div>
-            
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '13px', color: '#6b7280' }}>Min Score:</span>
-                <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{minScore}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', color: '#6b7280' }}>Мин. Score:</span>
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: getScoreColor(minScore) }}>{minScore}</span>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={minScore}
-                onChange={(e) => setMinScore(parseInt(e.target.value))}
-                style={{
-                  width: '100%',
-                  height: '6px',
-                  background: '#2a2a3e',
-                  borderRadius: '3px',
-                  outline: 'none',
-                  appearance: 'none'
-                }}
+              <input type="range" min={0} max={100} value={minScore}
+                onChange={e => setMinScore(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#00d4ff' }}
               />
             </div>
           </div>
@@ -263,102 +269,77 @@ export default function ScreenerPage() {
         {/* Results */}
         {results.length > 0 && (
           <div style={{ background: '#13131f', padding: '24px', borderRadius: '12px', border: '1px solid #2a2a3e' }}>
-            {/* Results Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div>
-                <h3 style={{ margin: 0 }}>Last Screening Session</h3>
-                {lastRun && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
-                    Completed {lastRun.toLocaleTimeString()} · 5 pairs
-                  </p>
-                )}
+                <h3 style={{ margin: 0 }}>Результаты скрининга</h3>
+                {lastRun && <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
+                  {lastRun.toLocaleTimeString()} · {results.length} пар найдено
+                </p>}
               </div>
-              
-              <div style={{ 
-                padding: '6px 16px', 
-                background: 'rgba(16, 185, 129, 0.1)', 
-                borderRadius: '20px',
-                color: '#10b981',
-                fontSize: '13px',
-                fontWeight: 'bold'
-              }}>
-                ✅ Completed
+              <div style={{ display: 'flex', gap: '16px' }}>
+                {[
+                  { label: 'LONG', value: results.filter(r => r.signal === 'LONG').length, color: '#10b981' },
+                  { label: 'SHORT', value: results.filter(r => r.signal === 'SHORT').length, color: '#ef4444' },
+                  { label: 'Score 70+', value: results.filter(r => r.score >= 70).length, color: '#00d4ff' },
+                ].map((s, i) => (
+                  <div key={i} style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: 700, color: s.color }}>{s.value}</div>
+                    <div style={{ fontSize: '11px', color: '#555' }}>{s.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
-              {[
-                { label: 'Pairs Analyzed', value: `${PAIRS.length}/${PAIRS.length}` },
-                { label: 'Signals Found', value: results.filter(r => r.signal !== '—').length.toString(), color: '#10b981' },
-                { label: 'Best Setups', value: results.filter(r => r.score >= 60).length.toString(), color: '#10b981' },
-                { label: 'Avg Score', value: Math.floor(results.reduce((s, r) => s + r.score, 0) / results.length).toString(), color: '#f59e0b' },
-                { label: 'Errors', value: '0', color: '#10b981' }
-              ].map((stat, idx) => (
-                <div key={idx} style={{ textAlign: 'center', padding: '16px', background: '#0a0a0f', borderRadius: '8px' }}>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#6b7280' }}>{stat.label}</p>
-                  <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: stat.color || '#fff' }}>{stat.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Results Table */}
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #2a2a3e' }}>
-                    {['Pair', 'Score', 'Price', 'Trend', 'SMC', 'Wyckoff', 'Signal', 'Confidence', 'R:R'].map((h) => (
-                      <th key={h} style={{ padding: '12px', textAlign: 'left', fontSize: '12px', color: '#6b7280', fontWeight: '500' }}>{h}</th>
+                    {['Пара', 'Цена', '24h %', 'Объём', 'RSI', 'Тренд', 'Сигнал', 'Уверенность', 'Score'].map(h => (
+                      <th key={h} style={{ padding: '12px', textAlign: 'left', fontSize: '12px', color: '#6b7280', fontWeight: 500 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {results.map((result, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #1c1c2e' }}>
-                      <td style={{ padding: '16px 12px', fontWeight: 'bold' }}>{result.pair}</td>
-                      <td style={{ padding: '16px 12px' }}>
-                        <span style={{ color: getScoreColor(result.score), fontWeight: 'bold' }}>{result.score}</span>
+                  {results.map((r, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #1c1c2e' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#1a1a2e'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <td style={{ padding: '14px 12px', fontWeight: 'bold' }}>{r.pair}</td>
+                      <td style={{ padding: '14px 12px' }}>${r.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                      <td style={{ padding: '14px 12px', color: r.change24h >= 0 ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
+                        {r.change24h >= 0 ? '+' : ''}{r.change24h.toFixed(2)}%
                       </td>
-                      <td style={{ padding: '16px 12px' }}>${result.price.toFixed(2)}</td>
-                      <td style={{ padding: '16px 12px' }}>
-                        <span style={{ 
-                          color: getTrendColor(result.trend),
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          {result.trend === 'bullish' ? '📈' : result.trend === 'bearish' ? '📉' : '—'} {result.trend}
+                      <td style={{ padding: '14px 12px', color: '#9ca3af', fontSize: '13px' }}>
+                        ${(r.volume24h / 1_000_000).toFixed(0)}M
+                      </td>
+                      <td style={{ padding: '14px 12px', color: getRsiColor(r.rsi), fontWeight: 'bold' }}>{r.rsi}</td>
+                      <td style={{ padding: '14px 12px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: r.trend === 'bullish' ? '#10b981' : r.trend === 'bearish' ? '#ef4444' : '#6b7280' }}>
+                          {r.trend === 'bullish' ? <TrendingUp size={14} /> : r.trend === 'bearish' ? <TrendingDown size={14} /> : <Minus size={14} />}
+                          {r.trend}
                         </span>
                       </td>
-                      <td style={{ padding: '16px 12px' }}>
-                        <span style={{
-                          padding: '4px 10px',
-                          background: result.smc === 'bullish' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                          color: result.smc === 'bullish' ? '#10b981' : '#ef4444',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: 'bold'
-                        }}>
-                          {result.smc}
-                        </span>
-                      </td>
-                      <td style={{ padding: '16px 12px', color: '#9ca3af' }}>{result.wyckoff}</td>
-                      <td style={{ padding: '16px 12px' }}>
-                        {result.signal !== '—' ? (
+                      <td style={{ padding: '14px 12px' }}>
+                        {r.signal !== '—' ? (
                           <span style={{
-                            padding: '4px 10px',
-                            background: result.signal === 'LONG' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                            color: result.signal === 'LONG' ? '#10b981' : '#ef4444',
-                            borderRadius: '12px',
-                            fontSize: '12px',
-                            fontWeight: 'bold'
-                          }}>
-                            {result.signal}
-                          </span>
-                        ) : '—'}
+                            padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold',
+                            background: r.signal === 'LONG' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                            color: r.signal === 'LONG' ? '#10b981' : '#ef4444',
+                          }}>{r.signal}</span>
+                        ) : <span style={{ color: '#444' }}>—</span>}
                       </td>
-                      <td style={{ padding: '16px 12px' }}>{result.confidence}%</td>
-                      <td style={{ padding: '16px 12px' }}>{result.rr}</td>
+                      <td style={{ padding: '14px 12px', color: r.confidence >= 70 ? '#10b981' : '#9ca3af' }}>
+                        {r.confidence > 0 ? `${r.confidence}%` : '—'}
+                      </td>
+                      <td style={{ padding: '14px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ flex: 1, height: '6px', background: '#2a2a3e', borderRadius: '3px' }}>
+                            <div style={{ height: '6px', background: getScoreColor(r.score), borderRadius: '3px', width: `${r.score}%` }} />
+                          </div>
+                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: getScoreColor(r.score), minWidth: '30px' }}>{r.score}</span>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -366,7 +347,19 @@ export default function ScreenerPage() {
             </div>
           </div>
         )}
+
+        {!isRunning && results.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px', background: '#13131f', borderRadius: '12px', border: '1px solid #2a2a3e', color: '#6b7280' }}>
+            <Search size={48} color="#2a2a3e" style={{ marginBottom: '16px' }} />
+            <p style={{ margin: 0, fontSize: '16px' }}>Нажми "Run Screener" чтобы начать анализ</p>
+            <p style={{ margin: '8px 0 0 0', fontSize: '13px' }}>Реальные цены · RSI · Объём · {ALL_PAIRS.length} пар</p>
+          </div>
+        )}
+
       </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </Sidebar>
   )
 }
+             
