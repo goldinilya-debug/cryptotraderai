@@ -95,6 +95,21 @@ export default function ScreenerPage() {
   const [killZone, setKillZone] = useState(getKillZone())
   const [progress, setProgress] = useState(0)
 
+  // Загрузка настроек из localStorage при старте
+  useEffect(() => {
+    const tf = localStorage.getItem('screener_tf')
+    const score = localStorage.getItem('screener_score')
+    const auto = localStorage.getItem('screener_auto')
+    if (tf) setTimeframe(tf)
+    if (score) setMinScore(Number(score))
+    if (auto) setAutoScreener(auto === 'true')
+  }, [])
+
+  // Сохранение при изменении
+  useEffect(() => { localStorage.setItem('screener_tf', timeframe) }, [timeframe])
+  useEffect(() => { localStorage.setItem('screener_score', String(minScore)) }, [minScore])
+  useEffect(() => { localStorage.setItem('screener_auto', String(autoScreener)) }, [autoScreener])
+
   useEffect(() => {
     const interval = setInterval(() => setKillZone(getKillZone()), 60000)
     return () => clearInterval(interval)
@@ -362,4 +377,3 @@ export default function ScreenerPage() {
     </Sidebar>
   )
 }
-             
