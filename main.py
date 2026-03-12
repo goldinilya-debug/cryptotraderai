@@ -270,7 +270,12 @@ def get_calendar(current_user: dict = Depends(get_current_user)):
             elif pnl < 0:
                 calendar[date]["losses"] += 1
     return calendar
+# ─── Signals ──────────────────────────────────────────────────────────────────
 
+@app.get("/api/signals")
+def get_signals():
+    result = supabase.table("signals").select("*").eq("status", "ACTIVE").order("created_at", desc=True).execute()
+    return {"signals": result.data or []}
 
 # ─── Health ───────────────────────────────────────────────────────────────────
 
