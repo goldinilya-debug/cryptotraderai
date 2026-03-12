@@ -148,7 +148,7 @@ export default function SniperPage() {
                 padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold',
                 background: selectedIdx === i ? (s.direction === 'LONG' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)') : '#13131f',
                 color: selectedIdx === i ? (s.direction === 'LONG' ? '#10b981' : '#ef4444') : '#9ca3af',
-                border: `1px solid ${selectedIdx === i ? (s.direction === 'LONG' ? '#10b981' : '#ef4444') : '#2a2a3e'}`,
+                outline: `1px solid ${selectedIdx === i ? (s.direction === 'LONG' ? '#10b981' : '#ef4444') : '#2a2a3e'}`,
               }}>
                 {s.pair} {s.direction} {s.confidence}%
               </button>
@@ -278,3 +278,4 @@ export default function SniperPage() {
     </Sidebar>
   )
 }
+
