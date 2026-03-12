@@ -70,23 +70,7 @@ export default function DashboardPage() {
               <h1 style={{ margin: 0, fontSize: '28px' }}>Dashboard</h1>
               <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>AI-powered crypto trading signals</p>
             </div>
-            
-           
-                padding: '10px 16px',
-                background: '#13131f',
-                border: '1px solid #2a2a3e',
-                borderRadius: '8px',
-                color: '#00d4ff',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '14px',
-                fontWeight: 'bold'
-              }}
-          
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {lastUpdate && (
                 <span style={{ color: '#6b7280', fontSize: '12px' }}>
                   Updated: {lastUpdate}
