@@ -137,8 +137,6 @@ export default function DiaryPage() {
     try {
       const params = new URLSearchParams();
       if (filterSymbol) params.append('symbol', filterSymbol);
-      if (filterStatus) params.append('status', filterStatus);
-      const data = await fetchWithAuth(`/api/diary/entries${params.toString() ? '?' + params : ''}`);
       const data = await fetchWithAuth(`/api/diary/entries${params.toString() ? '?' + params : ''}`);
 setEntries(data.entries || data || []);
     } catch (e) {
