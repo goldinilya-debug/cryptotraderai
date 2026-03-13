@@ -92,9 +92,11 @@ export default function DiaryPage() {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('diary_token');
-    if (saved) setToken(saved);
-  }, []);
+  const saved = localStorage.getItem('diary_token');
+  if (saved) setToken(saved);
+  const savedEmail = localStorage.getItem('diary_email');
+  if (savedEmail) setEmail(savedEmail);
+}, []);
 
   useEffect(() => {
     if (token) {
