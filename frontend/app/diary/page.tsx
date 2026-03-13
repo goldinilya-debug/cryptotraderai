@@ -124,10 +124,13 @@ setToken(data.access_token);
   }
 
   function logout() {
-    localStorage.removeItem('diary_token');
-    setToken(null);
-    setEntries([]);
-    setStats(null);
+  localStorage.removeItem('diary_token');
+  localStorage.removeItem('token');
+  localStorage.removeItem('diary_email');
+  setToken(null);
+  setEntries([]);
+  setStats(null);
+}
   }
 
   async function loadEntries() {
