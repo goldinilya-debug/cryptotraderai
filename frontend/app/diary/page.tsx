@@ -69,7 +69,7 @@ export default function DiaryPage() {
   const [filterSymbol, setFilterSymbol] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<Record<string, string>>({
     entry_date: new Date().toISOString().split('T')[0],
     symbol: '',
     direction: 'LONG',
