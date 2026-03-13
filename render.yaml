@@ -14,26 +14,14 @@ services:
       - key: SUPABASE_KEY
         sync: false
 
-  # FVG Signal Bot (background worker)
-  - type: worker
-    name: cryptotraderai-bot
+  # Bot Runner (smc_bot + signal_monitor as asyncio background tasks)
+  - type: web
+    name: cryptotraderai-bots
     runtime: python
     plan: free
     rootDir: trading-bot
     buildCommand: pip install -r requirements.txt
-    startCommand: python smc_bot.py
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-
-  # Signal Monitor (autonomous TP/SL watcher + ML trigger)
-  - type: worker
-    name: cryptotraderai-monitor
-    runtime: python
-    plan: free
-    rootDir: trading-bot
-    buildCommand: pip install -r requirements.txt
-    startCommand: python signal_monitor.py
+    startCommand: uvicorn runner:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
