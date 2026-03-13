@@ -5,5 +5,4 @@ ccxt==4.1.67
 python-dotenv==1.0.0
 aiohttp==3.9.1
 pandas==2.1.4
-pandas-ta @ git+https://github.com/twopirllc/pandas-ta.git@development
 numpy==1.26.2

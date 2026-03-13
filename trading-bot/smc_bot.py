@@ -8,7 +8,6 @@ import asyncio
 import aiohttp
 import numpy as np
 import pandas as pd
-import pandas_ta as ta
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import ccxt.async_support as ccxt
@@ -122,7 +121,7 @@ class FilterValidator:
             return True  # Not enough data, allow signal
         
         # Calculate EMA 200
-        ema_200 = ta.ema(df_h1['close'], length=200)
+        ema_200 = df_h1['close'].ewm(span=200, adjust=False).mean()
         current_price = df_h1['close'].iloc[-1]
         
         if direction == "BULLISH":
