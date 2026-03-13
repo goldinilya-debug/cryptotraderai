@@ -95,9 +95,6 @@ export default function DiaryPage() {
   const savedEmail = localStorage.getItem('diary_email');
   if (savedEmail) setEmail(savedEmail);
 }, []);
-  const savedEmail = localStorage.getItem('diary_email');
-  if (savedEmail) setEmail(savedEmail);
-}, []);
 
   useEffect(() => {
     if (token) {
