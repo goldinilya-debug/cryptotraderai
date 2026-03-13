@@ -111,7 +111,9 @@ export default function DiaryPage() {
         body: JSON.stringify({ email, password }),
       });
       localStorage.setItem('diary_token', data.access_token);
-      setToken(data.access_token);
+localStorage.setItem('token', data.access_token); // для Stats страницы
+localStorage.setItem('diary_email', email);
+setToken(data.access_token);
     } catch (e: any) {
       setAuthError(e.message);
     } finally {
