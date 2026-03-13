@@ -89,9 +89,12 @@ export default function DiaryPage() {
     lessons: '',
   });
 
-  useEffect(() => {
+ useEffect(() => {
   const saved = localStorage.getItem('diary_token');
   if (saved) setToken(saved);
+  const savedEmail = localStorage.getItem('diary_email');
+  if (savedEmail) setEmail(savedEmail);
+}, []);
   const savedEmail = localStorage.getItem('diary_email');
   if (savedEmail) setEmail(savedEmail);
 }, []);
