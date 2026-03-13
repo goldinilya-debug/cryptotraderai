@@ -25,3 +25,21 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+
+  # ML Signal Service (self-learning)
+  - type: web
+    name: cryptotraderai-ml
+    runtime: python
+    plan: free
+    rootDir: ml-system
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: MAIN_API_URL
+        value: https://cryptotraderai.onrender.com
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false

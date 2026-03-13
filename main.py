@@ -182,11 +182,36 @@ def get_entry(entry_id: str, current_user: dict = Depends(get_current_user)):
 
 @app.patch("/api/diary/entries/{entry_id}")
 def update_entry(entry_id: str, updates: DiaryEntryUpdate, current_user: dict = Depends(get_current_user)):
+    # Fetch current state before update (needed for outcome recording)
+    current = supabase.table("diary_entries").select("*").eq("id", entry_id).eq("user_id", current_user["user_id"]).execute()
+    if not current.data:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    entry = current.data[0]
+
     update_data = {k: v for k, v in updates.dict().items() if v is not None}
     update_data["updated_at"] = datetime.utcnow().isoformat()
     result = supabase.table("diary_entries").update(update_data).eq("id", entry_id).eq("user_id", current_user["user_id"]).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Entry not found")
+
+    # Self-learning: record outcome when trade closes with PnL
+    pnl = updates.pnl if updates.pnl is not None else entry.get("pnl")
+    if updates.status == "CLOSED" and pnl is not None:
+        try:
+            supabase.table("signal_outcomes").insert({
+                "user_id": current_user["user_id"],
+                "symbol": entry.get("symbol", "").upper(),
+                "direction": entry.get("direction", ""),
+                "timeframe": entry.get("timeframe"),
+                "strategy": entry.get("strategy"),
+                "emotions": entry.get("emotions"),
+                "pnl": pnl,
+                "outcome": "WIN" if pnl > 0 else "LOSS",
+                "created_at": datetime.utcnow().isoformat(),
+            }).execute()
+        except Exception:
+            pass  # Don't fail the update if outcome recording fails
+
     return result.data[0]
 
 @app.delete("/api/diary/entries/{entry_id}")
@@ -270,6 +295,14 @@ def get_calendar(current_user: dict = Depends(get_current_user)):
             elif pnl < 0:
                 calendar[date]["losses"] += 1
     return calendar
+# ─── Outcomes (self-learning data) ───────────────────────────────────────────
+
+@app.get("/api/outcomes")
+def get_outcomes(limit: int = 200):
+    """Training data for ML system — closed trades with WIN/LOSS outcomes."""
+    result = supabase.table("signal_outcomes").select("*").order("created_at", desc=True).limit(limit).execute()
+    return {"outcomes": result.data or [], "total": len(result.data or [])}
+
 # ─── Signals ──────────────────────────────────────────────────────────────────
 
 class SignalIn(BaseModel):
