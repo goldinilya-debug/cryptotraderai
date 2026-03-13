@@ -55,9 +55,7 @@ interface Stats {
 
 export default function DiaryPage() {
   const [token, setToken] = useState<string | null>(null);
-  const [email, setEmail] = useState(''); => 
-  typeof window !== 'undefined' ? localStorage.getItem('diary_email') || '' : ''
-);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [authError, setAuthError] = useState('');
