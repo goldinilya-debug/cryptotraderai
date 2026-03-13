@@ -352,6 +352,46 @@ def close_signal(signal_id: str):
         raise HTTPException(status_code=404, detail="Signal not found")
     return {"success": True}
 
+class SignalOutcome(BaseModel):
+    outcome: str        # "WIN" or "LOSS"
+    exit_price: float
+    pnl_percent: Optional[float] = None
+
+@app.post("/api/signals/{signal_id}/outcome")
+def record_signal_outcome(signal_id: str, body: SignalOutcome):
+    """Called by signal_monitor when TP or SL is hit. Closes signal + records learning data."""
+    # Get signal details
+    sig_result = supabase.table("signals").select("*").eq("id", signal_id).execute()
+    if not sig_result.data:
+        raise HTTPException(status_code=404, detail="Signal not found")
+    sig = sig_result.data[0]
+
+    # Mark signal closed
+    new_status = "CLOSED_TP" if body.outcome == "WIN" else "CLOSED_SL"
+    supabase.table("signals").update({
+        "status": new_status,
+        "updated_at": datetime.utcnow().isoformat(),
+    }).eq("id", signal_id).execute()
+
+    # Record outcome for ML training
+    supabase.table("signal_outcomes").insert({
+        "symbol": sig.get("symbol"),
+        "direction": sig.get("direction"),
+        "timeframe": sig.get("timeframe"),
+        "strategy": sig.get("signal_type"),
+        "entry_price": sig.get("entry_price"),
+        "exit_price": body.exit_price,
+        "stop_loss": sig.get("stop_loss"),
+        "take_profit": sig.get("take_profit"),
+        "confidence": sig.get("confidence"),
+        "pnl_percent": body.pnl_percent,
+        "pnl": body.pnl_percent,
+        "outcome": body.outcome,
+        "created_at": datetime.utcnow().isoformat(),
+    }).execute()
+
+    return {"success": True, "signal_id": signal_id, "outcome": body.outcome, "new_status": new_status}
+
 # /update_signal — called by smc_bot.py trading bot
 @app.post("/update_signal")
 def update_signal(signal: SignalIn):

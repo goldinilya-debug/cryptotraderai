@@ -26,6 +26,22 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.0
 
+  # Signal Monitor (autonomous TP/SL watcher + ML trigger)
+  - type: worker
+    name: cryptotraderai-monitor
+    runtime: python
+    plan: free
+    rootDir: trading-bot
+    buildCommand: pip install -r requirements.txt
+    startCommand: python signal_monitor.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: MAIN_API_URL
+        value: https://cryptotraderai.onrender.com
+      - key: ML_API_URL
+        value: https://cryptotraderai-ml.onrender.com
+
   # ML Signal Service (self-learning)
   - type: web
     name: cryptotraderai-ml
