@@ -139,7 +139,8 @@ export default function DiaryPage() {
       if (filterSymbol) params.append('symbol', filterSymbol);
       if (filterStatus) params.append('status', filterStatus);
       const data = await fetchWithAuth(`/api/diary/entries${params.toString() ? '?' + params : ''}`);
-      setEntries(data);
+      const data = await fetchWithAuth(`/api/diary/entries${params.toString() ? '?' + params : ''}`);
+setEntries(data.entries || data || []);
     } catch (e) {
       console.error(e);
     } finally {
