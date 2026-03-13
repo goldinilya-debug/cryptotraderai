@@ -132,13 +132,16 @@ export default function DiaryPage() {
     setStats(null);
   }
 
-  async function loadEntries() {
+  async function loadEntries(overrides?: { symbol?: string; status?: string }) {
     setLoading(true);
     try {
+      const symbol = overrides !== undefined ? overrides.symbol ?? '' : filterSymbol;
+      const status = overrides !== undefined ? overrides.status ?? '' : filterStatus;
       const params = new URLSearchParams();
-      if (filterSymbol) params.append('symbol', filterSymbol);
+      if (symbol) params.append('symbol', symbol);
+      if (status) params.append('status', status);
       const data = await fetchWithAuth(`/api/diary/entries${params.toString() ? '?' + params : ''}`);
-setEntries(data.entries || data || []);
+      setEntries(data.entries || data || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -382,7 +385,7 @@ setEntries(data.entries || data || []);
           </select>
           <button onClick={loadEntries} style={btnSecondary}>Применить</button>
           {(filterSymbol || filterStatus) && (
-            <button onClick={() => { setFilterSymbol(''); setFilterStatus(''); setTimeout(loadEntries, 0); }} style={{ ...btnSecondary, color: '#ff4757' }}>
+            <button onClick={() => { setFilterSymbol(''); setFilterStatus(''); loadEntries({ symbol: '', status: '' }); }} style={{ ...btnSecondary, color: '#ff4757' }}>
               Сбросить
             </button>
           )}

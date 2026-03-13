@@ -272,10 +272,57 @@ def get_calendar(current_user: dict = Depends(get_current_user)):
     return calendar
 # ─── Signals ──────────────────────────────────────────────────────────────────
 
+class SignalIn(BaseModel):
+    symbol: str
+    direction: str                  # LONG / SHORT
+    entry_price: float
+    stop_loss: float
+    take_profit: float
+    confidence: Optional[float] = None   # 0-100
+    timeframe: Optional[str] = "5m"
+    signal_type: Optional[str] = None   # e.g. BULLISH_FVG
+    exchange: Optional[str] = "binance"
+
 @app.get("/api/signals")
 def get_signals():
     result = supabase.table("signals").select("*").eq("status", "ACTIVE").order("created_at", desc=True).execute()
     return {"signals": result.data or []}
+
+@app.post("/api/signals")
+def create_signal(signal: SignalIn):
+    # Deduplicate: if an ACTIVE signal for same symbol already exists, update it
+    existing = supabase.table("signals").select("id").eq("symbol", signal.symbol.upper()).eq("status", "ACTIVE").execute()
+    data = {
+        "symbol": signal.symbol.upper(),
+        "direction": signal.direction.upper(),
+        "entry_price": signal.entry_price,
+        "stop_loss": signal.stop_loss,
+        "take_profit": signal.take_profit,
+        "confidence": signal.confidence,
+        "timeframe": signal.timeframe,
+        "signal_type": signal.signal_type,
+        "exchange": signal.exchange,
+        "status": "ACTIVE",
+        "updated_at": datetime.utcnow().isoformat(),
+    }
+    if existing.data:
+        result = supabase.table("signals").update(data).eq("id", existing.data[0]["id"]).execute()
+    else:
+        data["created_at"] = datetime.utcnow().isoformat()
+        result = supabase.table("signals").insert(data).execute()
+    return result.data[0]
+
+@app.delete("/api/signals/{signal_id}")
+def close_signal(signal_id: str):
+    result = supabase.table("signals").update({"status": "CLOSED", "updated_at": datetime.utcnow().isoformat()}).eq("id", signal_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Signal not found")
+    return {"success": True}
+
+# /update_signal — called by smc_bot.py trading bot
+@app.post("/update_signal")
+def update_signal(signal: SignalIn):
+    return create_signal(signal)
 
 # ─── Health ───────────────────────────────────────────────────────────────────
 
