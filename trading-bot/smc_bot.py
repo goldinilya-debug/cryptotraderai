@@ -15,7 +15,7 @@ import ccxt.async_support as ccxt
 import os
 
 # API Endpoint
-API_URL = "https://cryptotraderai-api.onrender.com"
+API_URL = "https://cryptotraderai.onrender.com"
 
 # Trading Configuration
 SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
@@ -234,15 +234,22 @@ class TradingBot:
     async def push_to_api(self, signal: Dict):
         """Push signal to backend API (Step 2)"""
         url = f"{API_URL}/update_signal"
-        
+
+        # Map bot fields → API SignalIn model
+        raw_prob = signal.get("probability", "75%")
+        confidence = float(str(raw_prob).replace("%", "").strip())
+        direction = "LONG" if "BULLISH" in signal["type"] else "SHORT"
+
         payload = {
-            "type": signal["type"],
-            "entry": signal["entry"],
-            "sl": signal["sl"],
-            "tp": signal["tp"],
-            "probability": signal["probability"],
             "symbol": signal["symbol"],
-            "metadata": signal.get("metadata", {})
+            "direction": direction,
+            "entry_price": signal["entry"],
+            "stop_loss": signal["sl"],
+            "take_profit": signal["tp"],
+            "confidence": confidence,
+            "signal_type": signal["type"],
+            "timeframe": "5m",
+            "exchange": "binance",
         }
         
         try:
