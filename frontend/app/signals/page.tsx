@@ -41,7 +41,12 @@ export default function SignalsPage() {
     try {
       const res = await fetch(`${API_URL}/api/signals`)
       const data = await res.json()
-      const list: Signal[] = data.signals || []
+      const list: Signal[] = (data.signals || []).map((s: any) => ({
+        ...s,
+        pair: s.pair ?? s.symbol ?? '',
+        entry: s.entry ?? s.entry_price ?? 0,
+        take_profit_1: s.take_profit_1 ?? s.take_profit ?? 0,
+      }))
       setSignals(list)
       setLastUpdate(new Date().toLocaleTimeString())
       if (alertEnabled && Notification.permission === 'granted') {
