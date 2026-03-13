@@ -89,12 +89,12 @@ export default function DiaryPage() {
     lessons: '',
   });
 
- useEffect(() => {
-  const saved = localStorage.getItem('diary_token');
-  if (saved) setToken(saved);
-  const savedEmail = localStorage.getItem('diary_email');
-  if (savedEmail) setEmail(savedEmail);
-}, []);
+  useEffect(() => {
+    const saved = localStorage.getItem('diary_token');
+    if (saved) setToken(saved);
+    const savedEmail = localStorage.getItem('diary_email');
+    if (savedEmail) setEmail(savedEmail);
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -113,11 +113,9 @@ export default function DiaryPage() {
         body: JSON.stringify({ email, password }),
       });
       localStorage.setItem('diary_token', data.access_token);
-localStorage.setItem('token', data.access_token);
-localStorage.setItem('diary_email', email);
-setToken(data.access_token); // для Stats страницы
-localStorage.setItem('diary_email', email);
-setToken(data.access_token);
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('diary_email', email);
+      setToken(data.access_token);
     } catch (e: any) {
       setAuthError(e.message);
     } finally {
@@ -126,13 +124,12 @@ setToken(data.access_token);
   }
 
   function logout() {
-  localStorage.removeItem('diary_token');
-  localStorage.removeItem('token');
-  localStorage.removeItem('diary_email');
-  setToken(null);
-  setEntries([]);
-  setStats(null);
-}
+    localStorage.removeItem('diary_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('diary_email');
+    setToken(null);
+    setEntries([]);
+    setStats(null);
   }
 
   async function loadEntries() {
@@ -341,7 +338,7 @@ setToken(data.access_token);
           </div>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: '#555' }}>{localStorage.getItem('diary_email') || ''}</span>
+          <span style={{ fontSize: 12, color: '#555' }}>{email}</span>
           <button onClick={() => { setShowForm(true); setEditEntry(null); resetForm(); }} style={btnPrimary}>
             + Новая сделка
           </button>
