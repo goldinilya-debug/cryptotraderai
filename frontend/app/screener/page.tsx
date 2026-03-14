@@ -71,6 +71,7 @@ async function analyzeRSI(symbol: string): Promise<number> {
     const json = await res.json()
     const klines = json.data || []
     const closes = klines.map((k: any) => parseFloat(k.close))
+    return calcRSI(closes)
   } catch {
     return 50
   }
