@@ -24,7 +24,7 @@ const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1]
 const AVAILABLE_PAIRS = [
   'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT',
   'ADA/USDT', 'DOGE/USDT', 'TRX/USDT', 'TON/USDT', 'LINK/USDT',
-  'MATIC/USDT', 'DOT/USDT', 'LTC/USDT', 'BCH/USDT', 'UNI/USDT',
+  'POL/USDT', 'DOT/USDT', 'LTC/USDT', 'BCH/USDT', 'UNI/USDT',
   '1000PEPE/USDT', '1000SHIB/USDT', 'FLOKI/USDT', 'BONK/USDT',
   'WIF/USDT', 'WLD/USDT', 'ARKM/USDT', 'PYTH/USDT', 'JUP/USDT',
   'SEI/USDT', 'SUI/USDT', 'APT/USDT', 'INJ/USDT', 'RENDER/USDT',
@@ -51,6 +51,7 @@ export default function FibZonesPage() {
   const [showRetracements, setShowRetracements] = useState(true)
   const [showExtensions, setShowExtensions] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState("")
   const [priceChange, setPriceChange] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [customPairs, setCustomPairs] = useState<string[]>([])
@@ -103,12 +104,14 @@ export default function FibZonesPage() {
   const loadPairData = async (pairToLoad?: string) => {
     const pair = pairToLoad || selectedPair
     setLoading(true)
+    setFetchError("")
     try {
       // Формируем символ для BingX API
       let symbol = pair.replace('/', '')
-      if (symbol === '1000PEPEUSDT') {
-        symbol = 'PEPEUSDT' // BingX использует PEPEUSDT
-      }
+const symbolMap: {[k:string]:string} = {'1000PEPEUSDT':'PEPE-USDT','1000SHIBUSDT':'SHIB-USDT','MATICUSDT':'POL-USDT','1000BONKUSDT':'BONK-USDT'}
+      let bingxOverride = ''
+      const rawBingx = symbol.replace('USDT', '-USDT')
+      if (symbolMap[symbol]) bingxOverride = symbolMap[symbol]
       
       console.log('=== Loading data ===')
       console.log('Pair:', pair)
@@ -117,7 +120,7 @@ export default function FibZonesPage() {
       
       // Получаем текущую цену
       console.log('Fetching price...')
-      const bingxSymbol = symbol.replace('USDT', '-USDT')
+      const bingxSymbol = bingxOverride || rawBingx
       const priceRes = await fetch(`https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol=${bingxSymbol}`)
       console.log('Price response status:', priceRes.status)
       
@@ -151,7 +154,7 @@ export default function FibZonesPage() {
       const interval = intervalMap[timeframe] || '4h'
       
       console.log('Fetching klines with interval:', interval)
-      const bingxSymbol2 = symbol.replace('USDT', '-USDT')
+      const bingxSymbol2 = bingxOverride || rawBingx
       const klinesRes = await fetch(`https://open-api.bingx.com/openApi/market/his/v1/kline?symbol=${bingxSymbol2}&interval=${interval}&limit=100`)
       console.log('Klines response status:', klinesRes.status)
       
@@ -184,7 +187,7 @@ export default function FibZonesPage() {
       console.log('=== Data loading complete ===')
     } catch (e) {
       console.error('Error loading data:', e)
-      alert('Ошибка загрузки: ' + (e as Error).message)
+      setFetchError((e as Error).message)
     }
     setLoading(false)
   }
@@ -264,6 +267,11 @@ export default function FibZonesPage() {
   return (
     <Sidebar>
       <div style={{ padding: '24px' }}>
+        {fetchError && (
+          <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid #ef4444', borderRadius: '8px', marginBottom: '16px', color: '#ef4444', fontSize: '13px' }}>
+            ⚠️ Ошибка загрузки данных: {fetchError}
+          </div>
+        )}
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
