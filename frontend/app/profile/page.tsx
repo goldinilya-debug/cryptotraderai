@@ -28,7 +28,7 @@ export default function ProfilePage() {
   const [password, setPassword] = useState('')
   const [isLoginMode, setIsLoginMode] = useState(true)
   const [error, setError] = useState('')
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | undefined>(undefined)
   
   const [selectedExchange, setSelectedExchange] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -95,7 +95,7 @@ export default function ProfilePage() {
   const handleLogout = () => {
     localStorage.removeItem('token')
     setIsLoggedIn(false)
-    setUser(null)
+    setUser(undefined)
     setEmail('')
     setPassword('')
   }

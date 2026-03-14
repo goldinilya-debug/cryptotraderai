@@ -42,7 +42,7 @@ const TIMEFRAMES: Record<string, string> = {
 const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'BNBUSDT']
 
 export default function SMCAnalysisPage() {
-  const [signal, setSignal] = useState<Signal | null>(null)
+  const [signal, setSignal] = useState<Signal | undefined>(undefined)
   const [allApiSignals, setAllApiSignals] = useState<ApiSignal[]>([])
   const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(false)

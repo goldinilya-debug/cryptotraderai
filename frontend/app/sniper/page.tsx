@@ -68,7 +68,7 @@ function signalToSetup(s: ApiSignal): Setup {
 
 export default function SniperPage() {
   const [scanning, setScanning] = useState(false)
-  const [setup, setSetup] = useState<Setup | null>(null)
+  const [setup, setSetup] = useState<Setup | undefined>(undefined)
   const [allSignals, setAllSignals] = useState<ApiSignal[]>([])
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [lastUpdate, setLastUpdate] = useState('')

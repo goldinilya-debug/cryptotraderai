@@ -46,7 +46,7 @@ const formatVolume = (vol: number): string => {
 
 export default function FootprintPage() {
   const [selectedPair, setSelectedPair] = useState('BTC/USDT')
-  const [data, setData] = useState<FootprintData | null>(null)
+  const [data, setData] = useState<FootprintData | undefined>(undefined)
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [customPairs, setCustomPairs] = useState<string[]>([])

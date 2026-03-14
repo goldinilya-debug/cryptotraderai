@@ -86,7 +86,7 @@ export default function TradingViewPage() {
   const [lang, setLang] = useState<'ru' | 'en'>('ru')
   const [copied, setCopied] = useState(false)
   const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<string | null>(null)
+  const [testResult, setTestResult] = useState<string | undefined>(undefined)
 
   const t = translations[lang]
   const webhookUrl = `${API_URL}/webhook/tradingview`

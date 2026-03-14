@@ -90,7 +90,7 @@ export default function ScreenerPage() {
   const [timeframe, setTimeframe] = useState('4H')
   const [minScore, setMinScore] = useState(30)
   const [results, setResults] = useState<ScreenerResult[]>([])
-  const [lastRun, setLastRun] = useState<Date | null>(null)
+  const [lastRun, setLastRun] = useState<Date | undefined>(undefined)
   const [autoScreener, setAutoScreener] = useState(false)
   const [killZone, setKillZone] = useState(getKillZone())
   const [progress, setProgress] = useState(0)

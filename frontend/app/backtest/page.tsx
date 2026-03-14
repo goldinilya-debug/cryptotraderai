@@ -160,7 +160,7 @@ function calcResults(trades: BacktestTrade[]): BacktestResult {
 
 export default function BacktestPage() {
   const [running, setRunning] = useState(false)
-  const [result, setResult] = useState<BacktestResult | null>(null)
+  const [result, setResult] = useState<BacktestResult | undefined>(undefined)
   const [strategy, setStrategy] = useState(STRATEGIES[0])
   const [pair, setPair] = useState(PAIRS[0])
   const [tf, setTf] = useState(TIMEFRAMES[1])

@@ -72,7 +72,7 @@ export default function StrategyPage() {
     backtest: false
   })
 
-  const [backtestResult, setBacktestResult] = useState<any>(null)
+  const [backtestResult, setBacktestResult] = useState<any>(undefined)
   const [isBacktesting, setIsBacktesting] = useState(false)
 
   const addCondition = () => {
