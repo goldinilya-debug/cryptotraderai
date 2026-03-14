@@ -383,7 +383,7 @@ export default function DiaryPage() {
             <option value="OPEN">Открытые</option>
             <option value="CLOSED">Закрытые</option>
           </select>
-          <button onClick={loadEntries} style={btnSecondary}>Применить</button>
+          <button onClick={() => loadEntries()} style={btnSecondary}>Применить</button>
           {(filterSymbol || filterStatus) && (
             <button onClick={() => { setFilterSymbol(''); setFilterStatus(''); loadEntries({ symbol: '', status: '' }); }} style={{ ...btnSecondary, color: '#ff4757' }}>
               Сбросить
