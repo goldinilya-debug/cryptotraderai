@@ -54,7 +54,7 @@ interface Stats {
 }
 
 export default function DiaryPage() {
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string>('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -62,10 +62,10 @@ export default function DiaryPage() {
   const [authLoading, setAuthLoading] = useState(false);
 
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<Stats | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [editEntry, setEditEntry] = useState<Entry | null>(null);
+  const [editEntry, setEditEntry] = useState<Entry | undefined>(undefined);
   const [filterSymbol, setFilterSymbol] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
@@ -91,7 +91,7 @@ export default function DiaryPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('diary_token');
-    if (saved) setToken(saved);
+    if (saved) setToken(saved || '');
     const savedEmail = localStorage.getItem('diary_email');
     if (savedEmail) setEmail(savedEmail);
   }, []);
@@ -115,7 +115,7 @@ export default function DiaryPage() {
       localStorage.setItem('diary_token', data.access_token);
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('diary_email', email);
-      setToken(data.access_token);
+      setToken(data.access_token || '');
     } catch (e: any) {
       setAuthError(e.message);
     } finally {
@@ -127,9 +127,9 @@ export default function DiaryPage() {
     localStorage.removeItem('diary_token');
     localStorage.removeItem('token');
     localStorage.removeItem('diary_email');
-    setToken(null);
+    setToken('');
     setEntries([]);
-    setStats(null);
+    setStats(undefined);
   }
 
   async function loadEntries(overrides?: { symbol?: string; status?: string }) {
@@ -182,7 +182,7 @@ export default function DiaryPage() {
         });
       }
       setShowForm(false);
-      setEditEntry(null);
+      setEditEntry(undefined);
       resetForm();
       loadEntries();
       loadStats();
@@ -249,7 +249,7 @@ export default function DiaryPage() {
   }
 
   // ─── AUTH SCREEN ──────────────────────────────────────────────────────────
-  if (!token) {
+  if (!token || token === '') {
     return (
       <div style={{
         minHeight: '100vh', background: '#0a0a0f',
@@ -477,7 +477,7 @@ export default function DiaryPage() {
               <h2 style={{ margin: 0, fontSize: 18, color: '#00f5a0' }}>
                 {editEntry ? 'Редактировать сделку' : 'Новая сделка'}
               </h2>
-              <button onClick={() => { setShowForm(false); setEditEntry(null); }} style={{ background: 'none', border: 'none', color: '#555', fontSize: 22, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => { setShowForm(false); setEditEntry(undefined); }} style={{ background: 'none', border: 'none', color: '#555', fontSize: 22, cursor: 'pointer' }}>✕</button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -563,7 +563,7 @@ export default function DiaryPage() {
               <button onClick={handleSubmit} style={{ ...btnPrimary, flex: 1, padding: '14px' }}>
                 {editEntry ? 'Сохранить изменения' : 'Добавить сделку'}
               </button>
-              <button onClick={() => { setShowForm(false); setEditEntry(null); }} style={{ ...btnSecondary, flex: 1, padding: '14px' }}>
+              <button onClick={() => { setShowForm(false); setEditEntry(undefined); }} style={{ ...btnSecondary, flex: 1, padding: '14px' }}>
                 Отмена
               </button>
             </div>
