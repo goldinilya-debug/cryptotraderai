@@ -110,7 +110,7 @@ export default function SMCAnalysisPage() {
   const fetchCurrentPrice = useCallback(async () => {
     try {
       const bingxSymbol = symbol.replace('USDT', '-USDT')
-      const url = `https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol=${bingxSymbol}`
+      const url = `https://cryptotraderai-api.onrender.com/proxy/ticker/${bingxSymbol}`
       const res = await fetch(url)
       const json = await res.json()
       const price = parseFloat(json?.data?.lastPrice)
@@ -122,7 +122,7 @@ export default function SMCAnalysisPage() {
     if (!candleSeriesRef.current) return
     try {
       const bingxSymbol = symbol.replace('USDT', '-USDT')
-      const res = await fetch(`https://open-api.bingx.com/openApi/market/his/v1/kline?symbol=${bingxSymbol}&interval=${TIMEFRAMES[selectedTF]}&limit=100`)
+      const res = await fetch(`https://cryptotraderai-api.onrender.com/proxy/klines/${bingxSymbol}?interval=${TIMEFRAMES[selectedTF]}&limit=100`)
       const json = await res.json()
       if (!json.data || !Array.isArray(json.data)) return
       const tzOffset = new Date().getTimezoneOffset() * -60

@@ -35,7 +35,7 @@ function getKillZone() {
 async function fetchBinancePrice(symbol: string): Promise<{ price: number; change24h: number; volume: number } | null> {
   try {
     const bingxSymbol = symbol.replace('/', '-').replace('USDT', '-USDT').replace('--', '-')
-    const res = await fetch(`https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol=${bingxSymbol}`)
+    const res = await fetch(`https://cryptotraderai-api.onrender.com/proxy/ticker/${bingxSymbol}`)
     const json = await res.json()
     const data = json.data
     if (!data) return null
@@ -67,7 +67,7 @@ function calcRSI(prices: number[], period = 14): number {
 async function analyzeRSI(symbol: string): Promise<number> {
   try {
     const bingxSymbol = symbol.replace('/', '-').replace('USDT', '-USDT').replace('--', '-')
-    const res = await fetch(`https://open-api.bingx.com/openApi/market/his/v1/kline?symbol=${bingxSymbol}&interval=4h&limit=30`)
+    const res = await fetch(`https://cryptotraderai-api.onrender.com/proxy/klines/${bingxSymbol}?interval=4h&limit=30`)
     const json = await res.json()
     const klines = json.data || []
     const closes = klines.map((k: any) => parseFloat(k.close))

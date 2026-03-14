@@ -406,3 +406,27 @@ def health():
 @app.get("/")
 def root():
     return {"name": "CryptoTraderAI API", "version": "3.5.0"}
+
+# ─── BingX Proxy (avoids browser CORS) ───────────────────────────────────────
+
+@app.get("/proxy/ticker/{symbol}")
+def proxy_ticker(symbol: str):
+    """Proxy BingX ticker to avoid browser CORS issues."""
+    import httpx
+    url = f"https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol={symbol}"
+    try:
+        r = httpx.get(url, timeout=10)
+        return r.json()
+    except Exception as e:
+        return {"code": -1, "msg": str(e)}
+
+@app.get("/proxy/klines/{symbol}")
+def proxy_klines(symbol: str, interval: str = "4h", limit: int = 100):
+    """Proxy BingX klines to avoid browser CORS issues."""
+    import httpx
+    url = f"https://open-api.bingx.com/openApi/market/his/v1/kline?symbol={symbol}&interval={interval}&limit={limit}"
+    try:
+        r = httpx.get(url, timeout=10)
+        return r.json()
+    except Exception as e:
+        return {"code": -1, "msg": str(e)}

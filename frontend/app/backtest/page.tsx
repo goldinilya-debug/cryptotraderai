@@ -176,7 +176,7 @@ export default function BacktestPage() {
       const symbol = pair.replace('/', '')
       const bingxSymbol = symbol.replace('USDT', '-USDT')
       const period = PERIODS[periodIdx]
-      const res = await fetch(`https://open-api.bingx.com/openApi/market/his/v1/kline?symbol=${bingxSymbol}&interval=${tf}&limit=${period.limit}`)
+      const res = await fetch(`https://cryptotraderai-api.onrender.com/proxy/klines/${bingxSymbol}?interval=${tf}&limit=${period.limit}`)
       const json = await res.json()
       setProgress(50)
 

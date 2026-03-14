@@ -103,12 +103,12 @@ export default function FootprintPage() {
 
       // Получаем 24h статистику
       const bingxSymbol = symbol.replace('USDT', '-USDT')
-      const tickerRes = await fetch(`https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol=${bingxSymbol}`)
+      const tickerRes = await fetch(`https://cryptotraderai-api.onrender.com/proxy/ticker/${bingxSymbol}`)
       const tickerData = await tickerRes.json()
       const ticker = tickerData.data || {}
 
       // Получаем последние сделки для дельты
-      const tradesRes = await fetch(`https://open-api.bingx.com/openApi/spot/v1/market/trades?symbol=${bingxSymbol}&limit=100`)
+      const tradesRes = await fetch(`https://cryptotraderai-api.onrender.com/proxy/trades/${bingxSymbol}?limit=100`)
       const tradesData = await tradesRes.json()
       const trades = tradesData.data || []
       let buyVol = 0

@@ -121,7 +121,7 @@ const symbolMap: {[k:string]:string} = {'1000PEPEUSDT':'PEPE-USDT','1000SHIBUSDT
       // Получаем текущую цену
       console.log('Fetching price...')
       const bingxSymbol = bingxOverride || rawBingx
-      const priceRes = await fetch(`https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol=${bingxSymbol}`)
+      const priceRes = await fetch(`https://cryptotraderai-api.onrender.com/proxy/ticker/${bingxSymbol}`)
       console.log('Price response status:', priceRes.status)
       
       if (!priceRes.ok) {
@@ -155,7 +155,7 @@ const symbolMap: {[k:string]:string} = {'1000PEPEUSDT':'PEPE-USDT','1000SHIBUSDT
       
       console.log('Fetching klines with interval:', interval)
       const bingxSymbol2 = bingxOverride || rawBingx
-      const klinesRes = await fetch(`https://open-api.bingx.com/openApi/market/his/v1/kline?symbol=${bingxSymbol2}&interval=${interval}&limit=100`)
+      const klinesRes = await fetch(`https://cryptotraderai-api.onrender.com/proxy/klines/${bingxSymbol2}?interval=${interval}&limit=100`)
       console.log('Klines response status:', klinesRes.status)
       
       if (!klinesRes.ok) {
