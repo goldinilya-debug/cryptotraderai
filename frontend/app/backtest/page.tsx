@@ -172,7 +172,7 @@ export default function BacktestPage() {
     setRunning(true)
     setError('')
     setProgress(10)
-
+    try {
       const symbol = pair.replace('/', '')
       const bingxSymbol = symbol.replace('USDT', '-USDT')
       const period = PERIODS[periodIdx]

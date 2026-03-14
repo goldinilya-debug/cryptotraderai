@@ -39,6 +39,8 @@ async function fetchBinancePrice(symbol: string): Promise<{ price: number; chang
     const json = await res.json()
     const data = json.data
     if (!data) return null
+    return {
+      price: parseFloat(data.lastPrice),
       change24h: parseFloat(data.priceChangePercent),
       volume: parseFloat(data.volume),
     }
