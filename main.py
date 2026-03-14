@@ -8,7 +8,7 @@ import hashlib
 import os
 from supabase import create_client, Client
 
-app = FastAPI(title="CryptoTraderAI API", version="3.5.0")
+app = FastAPI(title="CryptoTraderAI API", version="3.5.1")
 
 app.add_middleware(
     CORSMiddleware,
