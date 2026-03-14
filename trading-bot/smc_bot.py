@@ -22,7 +22,7 @@ SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
 TIMEFRAMES = {"m5": "5m", "h1": "1h"}
 
 # Filter Thresholds (Step 5)
-MIN_RELATIVE_VOLUME = 1.5  # Rel Vol > 1.5
+MIN_RELATIVE_VOLUME = 1.1  # Rel Vol > 1.1
 MIN_TREND_ALIGNMENT = True  # EMA 200 check
 
 class FVGDetector:
@@ -159,7 +159,7 @@ class FilterValidator:
             metadata["filters_passed"].append("TrendAligned")
         
         # Overall validation
-        is_valid = vol_passed and trend_aligned
+        is_valid = vol_passed or trend_aligned
         
         return is_valid, metadata
 
