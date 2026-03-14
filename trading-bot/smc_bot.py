@@ -6,6 +6,7 @@ Steps 2 & 5 from Technical Specification
 
 import asyncio
 import aiohttp
+import math
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
@@ -14,7 +15,7 @@ import ccxt.async_support as ccxt
 import os
 
 # API Endpoint
-API_URL = "https://cryptotraderai.onrender.com"
+API_URL = os.environ.get("MAIN_API_URL", "https://cryptotraderai.onrender.com")
 
 # Trading Configuration
 SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
@@ -50,11 +51,11 @@ class FVGDetector:
             
             return {
                 "type": "BULLISH_FVG",
-                "entry": round(entry, 2),
-                "sl": round(sl, 2),
-                "tp": round(tp, 2),
-                "candle1_high": candle1['high'],
-                "candle3_low": candle3['low'],
+                "entry": round(float(entry), 2),
+                "sl": round(float(sl), 2),
+                "tp": round(float(tp), 2),
+                "candle1_high": float(candle1['high']),
+                "candle3_low": float(candle3['low']),
                 "timestamp": datetime.utcnow().isoformat()
             }
         
@@ -81,11 +82,11 @@ class FVGDetector:
             
             return {
                 "type": "BEARISH_FVG",
-                "entry": round(entry, 2),
-                "sl": round(sl, 2),
-                "tp": round(tp, 2),
-                "candle1_low": candle1['low'],
-                "candle3_high": candle3['high'],
+                "entry": round(float(entry), 2),
+                "sl": round(float(sl), 2),
+                "tp": round(float(tp), 2),
+                "candle1_low": float(candle1['low']),
+                "candle3_high": float(candle3['high']),
                 "timestamp": datetime.utcnow().isoformat()
             }
         
@@ -239,12 +240,22 @@ class TradingBot:
         confidence = float(str(raw_prob).replace("%", "").strip())
         direction = "LONG" if "BULLISH" in signal["type"] else "SHORT"
 
+        # Explicit float() conversion to avoid numpy float64 / NaN serialization issues
+        entry = float(signal["entry"])
+        sl = float(signal["sl"])
+        tp = float(signal["tp"])
+
+        # Guard against NaN/inf values from pandas calculations
+        if not all(math.isfinite(v) for v in [entry, sl, tp, confidence]):
+            print(f"   ⚠️ Skipping signal with invalid price values: entry={entry}, sl={sl}, tp={tp}")
+            return
+
         payload = {
             "symbol": signal["symbol"],
             "direction": direction,
-            "entry_price": signal["entry"],
-            "stop_loss": signal["sl"],
-            "take_profit": signal["tp"],
+            "entry_price": entry,
+            "stop_loss": sl,
+            "take_profit": tp,
             "confidence": confidence,
             "signal_type": signal["type"],
             "timeframe": "5m",
@@ -254,16 +265,15 @@ class TradingBot:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, json=payload) as response:
+                    body = await response.text()
                     if response.status == 200:
-                        print(f"   📤 Signal sent successfully!")
-                        # Send Telegram notification
+                        print(f"   ✅ Signal sent: {signal['symbol']} {direction} @ {entry}")
                         await self.send_telegram_alert(signal)
                     else:
-                        error = await response.text()
-                        print(f"   ❌ API Error: {error}")
+                        print(f"   ❌ API Error {response.status}: {body}")
         except Exception as e:
             print(f"   ❌ Error pushing to API: {e}")
-    
+
     async def send_telegram_alert(self, signal: Dict):
         """Send Telegram notification"""
         # This would call the telegram service

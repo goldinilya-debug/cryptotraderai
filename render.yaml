@@ -13,6 +13,19 @@ services:
       - key: SUPABASE_KEY
         sync: false
 
+  # Frontend (Next.js)
+  - type: web
+    name: cryptotraderai-frontend
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start -- -p $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: NEXT_PUBLIC_API_URL
+        value: https://cryptotraderai.onrender.com
+
   # Bot Runner (smc_bot + signal_monitor as asyncio background tasks)
   - type: web
     name: cryptotraderai-bots
@@ -44,3 +57,16 @@ services:
         sync: false
       - key: SUPABASE_KEY
         sync: false
+
+  # Frontend (Next.js)
+  - type: web
+    name: cryptotraderai-frontend
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start -- -p $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: NEXT_PUBLIC_API_URL
+        value: https://cryptotraderai.onrender.com
