@@ -7,12 +7,11 @@ import { Crosshair, Target, TrendingUp, Activity, Zap, RefreshCw } from 'lucide-
 const API_URL = 'https://cryptotraderai.onrender.com'
 
 interface ApiSignal {
-  pair: string
+  symbol: string
   direction: string
-  entry: number
+  entry_price: number
   stop_loss: number
-  take_profit_1: number
-  take_profit_2?: number
+  take_profit: number
   confidence: number
   status: string
   timeframe: string
@@ -26,7 +25,6 @@ interface Setup {
   entry: number
   sl: number
   tp: number
-  tp2?: number
   confidence: number
   confluence: number
   timeframe: string
@@ -42,15 +40,14 @@ interface Setup {
 }
 
 function signalToSetup(s: ApiSignal): Setup {
-  const rr = Math.abs((s.take_profit_1 - s.entry) / (s.entry - s.stop_loss))
+  const rr = Math.abs((s.take_profit - s.entry_price) / (s.entry_price - s.stop_loss))
   const confluence = Math.ceil((s.confidence / 100) * 5)
   return {
-    pair: s.pair,
+    pair: s.symbol,
     direction: s.direction,
-    entry: s.entry,
+    entry: s.entry_price,
     sl: s.stop_loss,
-    tp: s.take_profit_1,
-    tp2: s.take_profit_2,
+    tp: s.take_profit,
     confidence: s.confidence,
     confluence: Math.min(5, Math.max(1, confluence)),
     timeframe: s.timeframe,
@@ -150,7 +147,7 @@ export default function SniperPage() {
                 color: selectedIdx === i ? (s.direction === 'LONG' ? '#10b981' : '#ef4444') : '#9ca3af',
                 outline: `1px solid ${selectedIdx === i ? (s.direction === 'LONG' ? '#10b981' : '#ef4444') : '#2a2a3e'}`,
               }}>
-                {s.pair} {s.direction} {s.confidence}%
+                {s.symbol} {s.direction} {s.confidence}%
               </button>
             ))}
           </div>
@@ -207,12 +204,6 @@ export default function SniperPage() {
                   ))}
                 </div>
 
-                {setup.tp2 && (
-                  <div style={{ marginTop: '12px', textAlign: 'center', padding: '10px', background: '#13131f', borderRadius: '8px' }}>
-                    <span style={{ fontSize: '12px', color: '#555' }}>TP2: </span>
-                    <span style={{ fontWeight: 'bold', color: '#10b981' }}>${setup.tp2.toLocaleString()}</span>
-                  </div>
-                )}
               </div>
             ) : !scanning && (
               <div style={{ textAlign: 'center', padding: '60px', background: '#13131f', borderRadius: '12px', border: '1px solid #2a2a3e', color: '#6b7280' }}>
