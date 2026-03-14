@@ -8,7 +8,7 @@ const API_URL = 'https://cryptotraderai-api.onrender.com'
 
 const ALL_PAIRS = [
   'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'AVAX/USDT', 'BNB/USDT',
-  'DOT/USDT', 'ADA/USDT', 'LINK/USDT', 'MATIC/USDT', 'XRP/USDT'
+  'DOT/USDT', 'ADA/USDT', 'LINK/USDT', 'POL/USDT', 'XRP/USDT'
 ]
 
 interface ScreenerResult {
@@ -34,13 +34,13 @@ function getKillZone() {
 
 async function fetchBinancePrice(symbol: string): Promise<{ price: number; change24h: number; volume: number } | null> {
   try {
-    const binanceSymbol = symbol.replace('/', '')
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`)
-    const data = await res.json()
-    return {
-      price: parseFloat(data.lastPrice),
+    const bingxSymbol = symbol.replace('/', '-').replace('USDT', '-USDT').replace('--', '-')
+    const res = await fetch(`https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol=${bingxSymbol}`)
+    const json = await res.json()
+    const data = json.data
+    if (!data) return null
       change24h: parseFloat(data.priceChangePercent),
-      volume: parseFloat(data.quoteVolume),
+      volume: parseFloat(data.volume),
     }
   } catch {
     return null
@@ -64,11 +64,11 @@ function calcRSI(prices: number[], period = 14): number {
 
 async function analyzeRSI(symbol: string): Promise<number> {
   try {
-    const binanceSymbol = symbol.replace('/', '')
-    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=4h&limit=30`)
-    const klines = await res.json()
-    const closes = klines.map((k: string[]) => parseFloat(k[4]))
-    return calcRSI(closes)
+    const bingxSymbol = symbol.replace('/', '-').replace('USDT', '-USDT').replace('--', '-')
+    const res = await fetch(`https://open-api.bingx.com/openApi/market/his/v1/kline?symbol=${bingxSymbol}&interval=4h&limit=30`)
+    const json = await res.json()
+    const klines = json.data || []
+    const closes = klines.map((k: any) => parseFloat(k.close))
   } catch {
     return 50
   }

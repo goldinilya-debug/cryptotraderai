@@ -104,10 +104,10 @@ export default function FibZonesPage() {
     const pair = pairToLoad || selectedPair
     setLoading(true)
     try {
-      // Формируем символ для Binance API
+      // Формируем символ для BingX API
       let symbol = pair.replace('/', '')
       if (symbol === '1000PEPEUSDT') {
-        symbol = 'PEPEUSDT' // Binance использует PEPEUSDT
+        symbol = 'PEPEUSDT' // BingX использует PEPEUSDT
       }
       
       console.log('=== Loading data ===')
@@ -117,7 +117,8 @@ export default function FibZonesPage() {
       
       // Получаем текущую цену
       console.log('Fetching price...')
-      const priceRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
+      const bingxSymbol = symbol.replace('USDT', '-USDT')
+      const priceRes = await fetch(`https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol=${bingxSymbol}`)
       console.log('Price response status:', priceRes.status)
       
       if (!priceRes.ok) {
@@ -129,8 +130,8 @@ export default function FibZonesPage() {
       const priceData = await priceRes.json()
       console.log('Price data received:', priceData)
       
-      const price = parseFloat(priceData.lastPrice)
-      const change = parseFloat(priceData.priceChangePercent)
+      const price = parseFloat(priceData.data.lastPrice)
+      const change = parseFloat(priceData.data.priceChangePercent)
       console.log('Parsed price:', price, 'Change:', change)
       
       if (isNaN(price)) {
@@ -150,7 +151,8 @@ export default function FibZonesPage() {
       const interval = intervalMap[timeframe] || '4h'
       
       console.log('Fetching klines with interval:', interval)
-      const klinesRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=100`)
+      const bingxSymbol2 = symbol.replace('USDT', '-USDT')
+      const klinesRes = await fetch(`https://open-api.bingx.com/openApi/market/his/v1/kline?symbol=${bingxSymbol2}&interval=${interval}&limit=100`)
       console.log('Klines response status:', klinesRes.status)
       
       if (!klinesRes.ok) {
@@ -159,12 +161,12 @@ export default function FibZonesPage() {
         throw new Error(`Klines API error: ${klinesRes.status}`)
       }
       
-      const klines = await klinesRes.json()
+      const klinesData = await klinesRes.json()
+      const klines = klinesData.data || []
       console.log('Klines received:', klines.length)
-
       if (klines.length > 0) {
-        const highs = klines.map((k: any) => parseFloat(k[2]))
-        const lows = klines.map((k: any) => parseFloat(k[3]))
+        const highs = klines.map((k: any) => parseFloat(k.high))
+        const lows = klines.map((k: any) => parseFloat(k.low))
         const maxHigh = Math.max(...highs)
         const minLow = Math.min(...lows)
         console.log('Swing High:', maxHigh, 'Swing Low:', minLow)

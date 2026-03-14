@@ -110,11 +110,12 @@ export default function SMCAnalysisPage() {
   const loadChartData = useCallback(async () => {
     if (!candleSeriesRef.current) return
     try {
-      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${TIMEFRAMES[selectedTF]}&limit=100`)
-      const data = await res.json()
-      if (!Array.isArray(data)) return
+      const bingxSymbol = symbol.replace('USDT', '-USDT')
+      const res = await fetch(`https://open-api.bingx.com/openApi/market/his/v1/kline?symbol=${bingxSymbol}&interval=${TIMEFRAMES[selectedTF]}&limit=100`)
+      const json = await res.json()
+      if (!json.data || !Array.isArray(json.data)) return
       const tzOffset = new Date().getTimezoneOffset() * -60
-      const candles = data.map((d: any[]) => ({ time: Math.floor(d[0] / 1000) + tzOffset, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }))
+      const candles = (json.data || []).map((d: any) => ({ time: Math.floor(d.time / 1000) + tzOffset, open: parseFloat(d.open), high: parseFloat(d.high), low: parseFloat(d.low), close: parseFloat(d.close) }))
       candleSeriesRef.current.setData(candles)
       if (candles.length > 0) setCurrentPrice(candles[candles.length - 1].close)
     } catch (e) { console.error('Chart error:', e) }

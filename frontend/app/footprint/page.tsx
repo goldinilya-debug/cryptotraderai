@@ -102,19 +102,21 @@ export default function FootprintPage() {
       if (symbol === '1000SHIBUSDT') symbol = 'SHIBUSDT'
 
       // Получаем 24h статистику
-      const tickerRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
-      const ticker = await tickerRes.json()
+      const bingxSymbol = symbol.replace('USDT', '-USDT')
+      const tickerRes = await fetch(`https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol=${bingxSymbol}`)
+      const tickerData = await tickerRes.json()
+      const ticker = tickerData.data || {}
 
       // Получаем последние сделки для дельты
-      const tradesRes = await fetch(`https://api.binance.com/api/v3/aggTrades?symbol=${symbol}&limit=100`)
-      const trades = await tradesRes.json()
-
-      // Рассчитываем дельту (упрощенно)
+      const tradesRes = await fetch(`https://open-api.bingx.com/openApi/spot/v1/market/trades?symbol=${bingxSymbol}&limit=100`)
+      const tradesData = await tradesRes.json()
+      const trades = tradesData.data || []
       let buyVol = 0
       let sellVol = 0
       trades.forEach((trade: any) => {
-        const qty = parseFloat(trade.q)
-        if (!trade.m) { // m = true - продажа (мейкер), false - покупка
+
+        const qty = parseFloat(trade.qty)
+        if (!trade.buyerMaker) { // buyerMaker = true - продажа (мейкер), false - покупка
           buyVol += qty
         } else {
           sellVol += qty
@@ -127,8 +129,8 @@ export default function FootprintPage() {
 
       // Рассчитываем POC и Value Area (упрощенно)
       const currentPrice = parseFloat(ticker.lastPrice)
-      const high24h = parseFloat(ticker.highPrice)
-      const low24h = parseFloat(ticker.lowPrice)
+      const high24h = parseFloat(ticker.highPrice || ticker.high || '0')
+      const low24h = parseFloat(ticker.lowPrice || ticker.low || '0')
       const range = high24h - low24h
 
       setData({

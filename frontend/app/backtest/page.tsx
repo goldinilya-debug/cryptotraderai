@@ -173,21 +173,21 @@ export default function BacktestPage() {
     setError('')
     setProgress(10)
 
-    try {
       const symbol = pair.replace('/', '')
+      const bingxSymbol = symbol.replace('USDT', '-USDT')
       const period = PERIODS[periodIdx]
-      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${tf}&limit=${period.limit}`)
-      const raw = await res.json()
+      const res = await fetch(`https://open-api.bingx.com/openApi/market/his/v1/kline?symbol=${bingxSymbol}&interval=${tf}&limit=${period.limit}`)
+      const json = await res.json()
       setProgress(50)
 
-      if (!Array.isArray(raw)) throw new Error('Binance error')
+      if (!json.data || !Array.isArray(json.data)) throw new Error('BingX error')
 
-      const candles = raw.map((d: any[]) => ({
-        time: Math.floor(d[0] / 1000),
-        open: parseFloat(d[1]),
-        high: parseFloat(d[2]),
-        low: parseFloat(d[3]),
-        close: parseFloat(d[4]),
+      const candles = (json.data || []).map((d: any) => ({
+        time: Math.floor(d.time / 1000),
+        open: parseFloat(d.open),
+        high: parseFloat(d.high),
+        low: parseFloat(d.low),
+        close: parseFloat(d.close),
       }))
 
       setProgress(70)
