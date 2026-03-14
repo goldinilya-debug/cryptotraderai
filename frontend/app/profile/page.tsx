@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { 
-  ArrowLeft, User, Key, Shield, Landmark, Check, AlertCircle, 
-  BookOpen, LogOut, Loader2
+import {
+  ArrowLeft, User, Key, Shield, Landmark, Check, AlertCircle,
+  LogOut, Loader2
 } from 'lucide-react'
 import { authAPI } from '../../lib/api'
 
@@ -287,40 +287,6 @@ export default function ProfilePage() {
           </button>
         </div>
       </div>
-
-      {/* Diary Link */}
-      <Link href="/diary" style={{ textDecoration: 'none' }}>
-        <div style={{ 
-          background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(124, 58, 237, 0.1))',
-          padding: '20px', 
-          borderRadius: '12px', 
-          border: '1px solid #00d4ff',
-          marginBottom: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          cursor: 'pointer'
-        }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'rgba(0, 212, 255, 0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <BookOpen size={24} color="#00d4ff" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ margin: '0 0 4px 0', color: '#fff' }}>📓 Торговый дневник</h3>
-            <p style={{ margin: 0, color: '#9ca3af', fontSize: '14px' }}>
-              Ваш личный дневник сделок. Только вы видите свои записи.
-            </p>
-          </div>
-          <ArrowLeft size={20} style={{ transform: 'rotate(180deg)', color: '#00d4ff' }} />
-        </div>
-      </Link>
 
       {/* Exchange Connection */}
       <div style={{ background: '#13131f', padding: '24px', borderRadius: '12px', border: '1px solid #2a2a3e', marginBottom: '24px' }}>
