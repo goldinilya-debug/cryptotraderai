@@ -5,11 +5,14 @@ import Sidebar from '@/components/Sidebar'
 import { Zap, Activity, TrendingUp, Target, Clock, RefreshCw, BookOpen, ExternalLink } from 'lucide-react'
 
 interface Signal {
-  pair: string
+  symbol: string
+  pair?: string
   direction: string
-  entry: number
+  entry_price: number
+  entry?: number
   stop_loss: number
-  take_profit_1: number
+  take_profit: number
+  take_profit_1?: number
   confidence: number
   status: string
   timeframe: string
@@ -159,7 +162,7 @@ export default function DashboardPage() {
                 <div key={idx} style={{ background: '#0a0a0f', padding: '20px', borderRadius: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{signal.pair}</span>
+                      <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{signal.symbol ?? signal.pair ?? ''}</span>
                       <span style={{ 
                         padding: '4px 12px',
                         background: signal.direction === 'LONG' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
@@ -178,7 +181,7 @@ export default function DashboardPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
                     <div>
                       <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#6b7280' }}>Entry</p>
-                      <p style={{ margin: 0, fontWeight: 'bold' }}>${signal.entry?.toLocaleString() || 'N/A'}</p>
+                      <p style={{ margin: 0, fontWeight: 'bold' }}>${(signal.entry_price ?? signal.entry ?? 0).toLocaleString() || 'N/A'}</p>
                     </div>
                     
                     <div>
@@ -188,7 +191,7 @@ export default function DashboardPage() {
                     
                     <div>
                       <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#6b7280' }}>TP</p>
-                      <p style={{ margin: 0, fontWeight: 'bold', color: '#10b981' }}>${signal.take_profit_1?.toLocaleString() || 'N/A'}</p>
+                      <p style={{ margin: 0, fontWeight: 'bold', color: '#10b981' }}>${(signal.take_profit ?? signal.take_profit_1 ?? 0).toLocaleString() || 'N/A'}</p>
                     </div>
                   </div>
 

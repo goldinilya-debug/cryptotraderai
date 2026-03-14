@@ -21,12 +21,14 @@ interface Signal {
 }
 
 interface ApiSignal {
-  pair: string
+  symbol: string
+  pair?: string
   direction: string
-  entry: number
+  entry_price: number
+  entry?: number
   stop_loss: number
-  take_profit_1: number
-  take_profit_2?: number
+  take_profit: number
+  take_profit_1?: number
   confidence: number
   status: string
   timeframe: string
@@ -76,20 +78,19 @@ export default function SMCAnalysisPage() {
       setLastUpdate(new Date().toLocaleTimeString())
 
       const symbolPair = symbol.replace('USDT', '/USDT')
-      const match = list.find(s => s.pair === symbolPair && s.status === 'ACTIVE')
+      const match = list.find(s => (s.symbol ?? s.pair ?? '') === symbolPair && s.status === 'ACTIVE')
 
       if (match) {
         const converted: Signal = {
           active: true,
           type: match.direction as 'LONG' | 'SHORT',
-          entry: match.entry,
+          entry: match.entry_price ?? match.entry ?? 0,
           sl: match.stop_loss,
-          tp: match.take_profit_1,
-          tp2: match.take_profit_2,
+          tp: match.take_profit ?? match.take_profit_1 ?? 0,
           probability: match.confidence,
-          symbol: match.pair,
+          symbol: match.symbol ?? match.pair ?? '',
           timeframe: match.timeframe,
-          explanation: `Сигнал от агента: ${match.direction} на ${match.pair}. Вход $${match.entry.toLocaleString()}, TP $${match.take_profit_1.toLocaleString()}, SL $${match.stop_loss.toLocaleString()}. Уверенность ${match.confidence}%.`,
+          explanation: `Сигнал от агента: ${match.direction} на ${match.symbol ?? match.pair}. Вход ${(match.entry_price ?? match.entry ?? 0).toLocaleString()}, TP ${(match.take_profit ?? match.take_profit_1 ?? 0).toLocaleString()}, SL ${match.stop_loss.toLocaleString()}. Уверенность ${match.confidence}%.`,
           reason: match.direction === 'LONG' ? 'Bullish FVG + Order Block' : 'Bearish FVG + Order Block',
         }
         setSignal(converted)
