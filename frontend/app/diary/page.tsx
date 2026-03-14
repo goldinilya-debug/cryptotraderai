@@ -341,7 +341,7 @@ export default function DiaryPage() {
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#555' }}>{email}</span>
-          <button onClick={() => { setShowForm(true); setEditEntry(null); resetForm(); }} style={btnPrimary}>
+          <button onClick={() => { setShowForm(true); setEditEntry(undefined); resetForm(); }} style={btnPrimary}>
             + Новая сделка
           </button>
           <button onClick={logout} style={btnSecondary}>Выйти</button>
