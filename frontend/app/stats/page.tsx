@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { TrendingUp, TrendingDown, Activity, Target, BarChart3, Calendar, RefreshCw } from 'lucide-react'
 
-const API_URL = 'https://cryptotraderai.onrender.com'
+const API_URL = 'https://cryptotraderai-api.onrender.com'
 
 interface Trade {
   id: string

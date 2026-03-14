@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-const API_URL = 'https://cryptotraderai.onrender.com';
+const API_URL = 'https://cryptotraderai-api.onrender.com';
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('diary_token');

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { Search, Play, RefreshCw, Clock, Zap, Filter, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
-const API_URL = 'https://cryptotraderai.onrender.com'
+const API_URL = 'https://cryptotraderai-api.onrender.com'
 
 const ALL_PAIRS = [
   'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'AVAX/USDT', 'BNB/USDT',

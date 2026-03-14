@@ -25,7 +25,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchSignals = async () => {
       try {
-        const res = await fetch('https://cryptotraderai.onrender.com/api/signals')
+        const res = await fetch('https://cryptotraderai-api.onrender.com/api/signals')
         const data = await res.json()
         setSignals(data.signals || [])
         setLastUpdate(new Date().toLocaleTimeString())

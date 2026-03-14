@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar'
 import { Activity, Filter, Bell, RefreshCw, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis } from 'recharts'
 
-const API_URL = 'https://cryptotraderai.onrender.com'
+const API_URL = 'https://cryptotraderai-api.onrender.com'
 
 interface Signal {
   id?: string

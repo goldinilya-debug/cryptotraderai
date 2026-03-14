@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { Activity, Bell, TrendingUp, History, RefreshCw } from 'lucide-react'
 
-const API_URL = 'https://cryptotraderai.onrender.com'
+const API_URL = 'https://cryptotraderai-api.onrender.com'
 
 interface Signal {
   active: boolean
