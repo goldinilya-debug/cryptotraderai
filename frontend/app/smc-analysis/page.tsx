@@ -107,6 +107,17 @@ export default function SMCAnalysisPage() {
     }
   }, [symbol, updateSignalLines])
 
+  const fetchCurrentPrice = useCallback(async () => {
+    try {
+      const bingxSymbol = symbol.replace('USDT', '-USDT')
+      const url = `https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol=${bingxSymbol}`
+      const res = await fetch(url)
+      const json = await res.json()
+      const price = parseFloat(json?.data?.lastPrice)
+      if (price > 0) setCurrentPrice(price)
+    } catch (e) { console.error('Price fetch error:', e) }
+  }, [symbol])
+
   const loadChartData = useCallback(async () => {
     if (!candleSeriesRef.current) return
     try {
@@ -150,11 +161,11 @@ export default function SMCAnalysisPage() {
   useEffect(() => { if (chartInitialized.current) loadChartData() }, [selectedTF, symbol])
   useEffect(() => { if (chartInitialized.current) fetchSignals() }, [symbol])
   useEffect(() => {
-    const interval = setInterval(() => { loadChartData(); fetchSignals() }, 15000)
+    fetchCurrentPrice(); const interval = setInterval(() => { loadChartData(); fetchSignals(); fetchCurrentPrice() }, 15000)
     return () => clearInterval(interval)
-  }, [loadChartData, fetchSignals])
+  }, [loadChartData, fetchSignals, fetchCurrentPrice])
 
-  const handleRefresh = async () => { setLoading(true); await loadChartData(); await fetchSignals(); setLoading(false) }
+  const handleRefresh = async () => { setLoading(true); await Promise.all([loadChartData(), fetchSignals(), fetchCurrentPrice()]); setLoading(false) }
   const rr = signal ? Math.abs((signal.tp - signal.entry) / (signal.entry - signal.sl)).toFixed(1) : null
 
   return (
