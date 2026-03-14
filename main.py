@@ -407,26 +407,44 @@ def health():
 def root():
     return {"name": "CryptoTraderAI API", "version": "3.5.0"}
 
-# ─── BingX Proxy (avoids browser CORS) ───────────────────────────────────────
+
+# ─── Market Data Proxy (Bybit public API — no auth, CORS-friendly) ──────────
+
+def _bybit_interval(interval: str) -> str:
+    m = {"1m":"1","3m":"3","5m":"5","15m":"15","30m":"30","1h":"60","2h":"120","4h":"240","6h":"360","12h":"720","1d":"D","1w":"W"}
+    return m.get(interval.lower(), interval)
 
 @app.get("/proxy/ticker/{symbol}")
 def proxy_ticker(symbol: str):
-    """Proxy BingX ticker to avoid browser CORS issues."""
     import httpx
-    url = f"https://open-api.bingx.com/openApi/spot/v1/ticker/24hr?symbol={symbol}"
+    # symbol comes as BTC-USDT, Bybit needs BTCUSDT
+    bybit_symbol = symbol.replace("-", "")
+    url = f"https://api.bybit.com/v5/market/tickers?category=spot&symbol={bybit_symbol}"
     try:
         r = httpx.get(url, timeout=10)
-        return r.json()
+        j = r.json()
+        t = j.get("result", {}).get("list", [{}])[0]
+        return {"code": 0, "data": {
+            "lastPrice": t.get("lastPrice", "0"),
+            "priceChangePercent": str(float(t.get("price24hPcnt", "0")) * 100),
+            "volume": t.get("volume24h", "0"),
+        }}
     except Exception as e:
         return {"code": -1, "msg": str(e)}
 
 @app.get("/proxy/klines/{symbol}")
 def proxy_klines(symbol: str, interval: str = "4h", limit: int = 100):
-    """Proxy BingX klines to avoid browser CORS issues."""
     import httpx
-    url = f"https://open-api.bingx.com/openApi/market/his/v1/kline?symbol={symbol}&interval={interval}&limit={limit}"
+    bybit_symbol = symbol.replace("-", "")
+    bybit_interval = _bybit_interval(interval)
+    url = f"https://api.bybit.com/v5/market/kline?category=spot&symbol={bybit_symbol}&interval={bybit_interval}&limit={limit}"
     try:
         r = httpx.get(url, timeout=10)
-        return r.json()
+        j = r.json()
+        raw = j.get("result", {}).get("list", [])
+        # Bybit returns newest first — reverse to oldest first
+        raw = list(reversed(raw))
+        data = [{"time": int(k[0]), "open": k[1], "high": k[2], "low": k[3], "close": k[4], "volume": k[5]} for k in raw]
+        return {"code": 0, "data": data}
     except Exception as e:
         return {"code": -1, "msg": str(e)}
