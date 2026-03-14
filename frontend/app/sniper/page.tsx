@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { Crosshair, Target, TrendingUp, Activity, Zap, RefreshCw } from 'lucide-react'
 
-const API_URL = 'https://cryptotraderai.onrender.com'
+const API_URL = 'https://cryptotraderai-api.onrender.com'
 
 interface ApiSignal {
   symbol: string
