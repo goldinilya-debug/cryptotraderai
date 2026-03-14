@@ -258,11 +258,11 @@ export default function SMCAnalysisPage() {
                 {allApiSignals.slice(0, 5).map((s, i) => (
                   <div key={i}
                     onClick={() => {
-                      setSymbol(s.pair.replace('/', ''))
-                      const c: Signal = { active: true, type: s.direction as 'LONG' | 'SHORT', entry: s.entry, sl: s.stop_loss, tp: s.take_profit_1, tp2: s.take_profit_2, probability: s.confidence, symbol: s.pair, timeframe: s.timeframe, explanation: `Сигнал: ${s.pair} ${s.direction}`, reason: '' }
+                      setSymbol((s.symbol ?? s.pair ?? "").replace('/', ''))
+                      const c: Signal = { active: true, type: s.direction as 'LONG' | 'SHORT', entry: s.entry_price ?? s.entry ?? 0, sl: s.stop_loss, tp: s.take_profit ?? s.take_profit_1 ?? 0, probability: s.confidence, symbol: s.symbol ?? s.pair ?? '', timeframe: s.timeframe, explanation: `Сигнал: ${s.symbol ?? s.pair} ${s.direction}`, reason: '' }
                       setSignal(c); updateSignalLines(c)
                     }}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderRadius: '8px', marginBottom: '6px', cursor: 'pointer', background: signal?.symbol === s.pair ? '#1a1a2e' : '#0a0a0f', border: `1px solid ${signal?.symbol === s.pair ? '#00d4ff40' : '#1c1c2e'}` }}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderRadius: '8px', marginBottom: '6px', cursor: 'pointer', background: (s.symbol ?? s.pair ?? '') === signal?.symbol ? '#1a1a2e' : '#0a0a0f', border: `1px solid ${(s.symbol ?? s.pair ?? '') === signal?.symbol ? '#00d4ff40' : '#1c1c2e'}` }}
                   >
                     <div>
                       <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{s.pair}</span>
