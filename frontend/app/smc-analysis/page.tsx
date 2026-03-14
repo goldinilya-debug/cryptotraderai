@@ -99,7 +99,7 @@ export default function SMCAnalysisPage() {
           return [{ time: new Date().toLocaleTimeString(), type: match.direction, entry: match.entry, result: 'PENDING', symbol: match.pair }, ...prev].slice(0, 10)
         })
       } else {
-        setSignal(null)
+        setSignal(undefined)
       }
     } catch (e) {
       console.error('Error fetching signals:', e)

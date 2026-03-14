@@ -89,7 +89,7 @@ export default function SniperPage() {
         setSetup(signalToSetup(best))
         setSelectedIdx(list.indexOf(best))
       } else {
-        setSetup(null)
+        setSetup(undefined)
       }
     } catch (e) {
       setError('Ошибка загрузки сигналов')

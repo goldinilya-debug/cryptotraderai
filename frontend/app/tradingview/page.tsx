@@ -103,7 +103,7 @@ export default function TradingViewPage() {
 
   const testWebhook = async () => {
     setTesting(true)
-    setTestResult(null)
+    setTestResult(undefined)
     
     try {
       const response = await fetch(`${API_URL}/webhook/tradingview/test`)
