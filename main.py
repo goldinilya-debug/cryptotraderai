@@ -8,7 +8,7 @@ import hashlib
 import os
 from supabase import create_client, Client
 
-app = FastAPI(title="CryptoTraderAI API", version="3.5.3")
+app = FastAPI(title="CryptoTraderAI API", version="3.5.4")
 
 app.add_middleware(
     CORSMiddleware,
@@ -399,7 +399,7 @@ def update_signal(signal: SignalIn):
 
 # ─── Health ───────────────────────────────────────────────────────────────────
 
-_API_VERSION = "3.5.3"
+_API_VERSION = "3.5.4"
 
 @app.get("/health")
 def health():
@@ -431,6 +431,8 @@ def proxy_ticker(symbol: str):
             "lastPrice": j.get("lastPrice", "0"),
             "priceChangePercent": j.get("priceChangePercent", "0"),
             "volume": j.get("volume", "0"),
+            "highPrice": j.get("highPrice", "0"),
+            "lowPrice": j.get("lowPrice", "0"),
         }}
     except Exception as e:
         return {"code": -1, "msg": str(e)}
@@ -461,6 +463,22 @@ def proxy_klines(symbol: str, interval: str = "4h", limit: int = 100):
         raw = r.json()
         # MEXC/Binance format: [openTime, open, high, low, close, volume, closeTime, ...]
         data = [{"time": int(k[0]), "open": k[1], "high": k[2], "low": k[3], "close": k[4], "volume": k[5]} for k in raw]
+        return {"code": 0, "data": data}
+    except Exception as e:
+        return {"code": -1, "msg": str(e)}
+
+@app.get("/proxy/trades/{symbol}")
+def proxy_trades(symbol: str, limit: int = 100):
+    import httpx
+    mexc_symbol = symbol.replace("-", "")
+    url = f"https://api.mexc.com/api/v3/trades?symbol={mexc_symbol}&limit={limit}"
+    try:
+        r = httpx.get(url, headers=_HEADERS, timeout=15, follow_redirects=True)
+        if r.status_code != 200:
+            return {"code": -1, "msg": f"HTTP {r.status_code}: {r.text[:200]}"}
+        raw = r.json()
+        # Normalize: MEXC uses isBuyerMaker, frontend expects buyerMaker
+        data = [{"price": t.get("price"), "qty": t.get("qty"), "buyerMaker": t.get("isBuyerMaker", False), "time": t.get("time")} for t in raw]
         return {"code": 0, "data": data}
     except Exception as e:
         return {"code": -1, "msg": str(e)}
