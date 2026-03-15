@@ -8,7 +8,7 @@ import hashlib
 import os
 from supabase import create_client, Client
 
-app = FastAPI(title="CryptoTraderAI API", version="3.5.1")
+app = FastAPI(title="CryptoTraderAI API", version="3.5.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -408,11 +408,7 @@ def root():
     return {"name": "CryptoTraderAI API", "version": "3.5.0"}
 
 
-# ─── Market Data Proxy (Bybit public API — no auth, CORS-friendly) ──────────
-
-def _bybit_interval(interval: str) -> str:
-    m = {"1m":"1","3m":"3","5m":"5","15m":"15","30m":"30","1h":"60","2h":"120","4h":"240","6h":"360","12h":"720","1d":"D","1w":"W"}
-    return m.get(interval.lower(), interval)
+# ─── Market Data Proxy (MEXC public API — Binance-compatible, no geo-block) ──
 
 _HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; CryptoTraderAI/1.0)",
@@ -422,27 +418,26 @@ _HEADERS = {
 @app.get("/proxy/ticker/{symbol}")
 def proxy_ticker(symbol: str):
     import httpx
-    bybit_symbol = symbol.replace("-", "")
-    url = f"https://api.bybit.com/v5/market/tickers?category=spot&symbol={bybit_symbol}"
+    mexc_symbol = symbol.replace("-", "")
+    url = f"https://api.mexc.com/api/v3/ticker/24hr?symbol={mexc_symbol}"
     try:
         r = httpx.get(url, headers=_HEADERS, timeout=15, follow_redirects=True)
         if r.status_code != 200:
             return {"code": -1, "msg": f"HTTP {r.status_code}: {r.text[:200]}"}
         j = r.json()
-        t = j.get("result", {}).get("list", [{}])[0]
         return {"code": 0, "data": {
-            "lastPrice": t.get("lastPrice", "0"),
-            "priceChangePercent": str(float(t.get("price24hPcnt", "0")) * 100),
-            "volume": t.get("volume24h", "0"),
+            "lastPrice": j.get("lastPrice", "0"),
+            "priceChangePercent": j.get("priceChangePercent", "0"),
+            "volume": j.get("volume", "0"),
         }}
     except Exception as e:
         return {"code": -1, "msg": str(e)}
 
 @app.get("/proxy/debug")
 def proxy_debug():
-    """Debug: test raw Bybit connectivity from server"""
+    """Debug: test raw MEXC connectivity from server"""
     import httpx
-    url = "https://api.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT"
+    url = "https://api.mexc.com/api/v3/ticker/24hr?symbol=BTCUSDT"
     try:
         r = httpx.get(url, headers=_HEADERS, timeout=15, follow_redirects=True)
         return {"status": r.status_code, "body_len": len(r.text), "body_preview": r.text[:500]}
@@ -452,16 +447,14 @@ def proxy_debug():
 @app.get("/proxy/klines/{symbol}")
 def proxy_klines(symbol: str, interval: str = "4h", limit: int = 100):
     import httpx
-    bybit_symbol = symbol.replace("-", "")
-    bybit_interval = _bybit_interval(interval)
-    url = f"https://api.bybit.com/v5/market/kline?category=spot&symbol={bybit_symbol}&interval={bybit_interval}&limit={limit}"
+    mexc_symbol = symbol.replace("-", "")
+    url = f"https://api.mexc.com/api/v3/klines?symbol={mexc_symbol}&interval={interval}&limit={limit}"
     try:
         r = httpx.get(url, headers=_HEADERS, timeout=15, follow_redirects=True)
         if r.status_code != 200:
             return {"code": -1, "msg": f"HTTP {r.status_code}: {r.text[:200]}"}
-        j = r.json()
-        raw = j.get("result", {}).get("list", [])
-        raw = list(reversed(raw))
+        raw = r.json()
+        # MEXC/Binance format: [openTime, open, high, low, close, volume, closeTime, ...]
         data = [{"time": int(k[0]), "open": k[1], "high": k[2], "low": k[3], "close": k[4], "volume": k[5]} for k in raw]
         return {"code": 0, "data": data}
     except Exception as e:

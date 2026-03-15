@@ -15,7 +15,7 @@ import ccxt.async_support as ccxt
 import os
 
 # API Endpoint
-API_URL = os.environ.get("MAIN_API_URL", "https://cryptotraderai.onrender.com")
+API_URL = os.environ.get("MAIN_API_URL", "https://cryptotraderai-api.onrender.com")
 
 # Trading Configuration
 SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
@@ -168,7 +168,7 @@ class TradingBot:
     """Main Trading Bot"""
     
     def __init__(self):
-        self.exchange = ccxt.bingx({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+        self.exchange = ccxt.mexc({"enableRateLimit": True, "options": {"defaultType": "spot"}})
         self.fvg_detector = FVGDetector()
         self.filter_validator = FilterValidator()
         self.active_signals = {}  # Track sent signals
@@ -259,7 +259,7 @@ class TradingBot:
             "confidence": confidence,
             "signal_type": signal["type"],
             "timeframe": "5m",
-            "exchange": "bingx",
+            "exchange": "mexc",
         }
         
         try:
