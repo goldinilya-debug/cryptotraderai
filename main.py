@@ -8,7 +8,7 @@ import hashlib
 import os
 from supabase import create_client, Client
 
-app = FastAPI(title="CryptoTraderAI API", version="3.5.2")
+app = FastAPI(title="CryptoTraderAI API", version="3.5.3")
 
 app.add_middleware(
     CORSMiddleware,
@@ -399,7 +399,7 @@ def update_signal(signal: SignalIn):
 
 # ─── Health ───────────────────────────────────────────────────────────────────
 
-_API_VERSION = "3.5.2"
+_API_VERSION = "3.5.3"
 
 @app.get("/health")
 def health():
@@ -446,11 +446,14 @@ def proxy_debug():
     except Exception as e:
         return {"error": str(e)}
 
+_MEXC_INTERVAL = {"1h": "60m", "2h": "60m", "3h": "60m", "1w": "1W", "1M": "1M"}
+
 @app.get("/proxy/klines/{symbol}")
 def proxy_klines(symbol: str, interval: str = "4h", limit: int = 100):
     import httpx
     mexc_symbol = symbol.replace("-", "")
-    url = f"https://api.mexc.com/api/v3/klines?symbol={mexc_symbol}&interval={interval}&limit={limit}"
+    mexc_interval = _MEXC_INTERVAL.get(interval, interval)
+    url = f"https://api.mexc.com/api/v3/klines?symbol={mexc_symbol}&interval={mexc_interval}&limit={limit}"
     try:
         r = httpx.get(url, headers=_HEADERS, timeout=15, follow_redirects=True)
         if r.status_code != 200:
