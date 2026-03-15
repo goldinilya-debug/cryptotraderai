@@ -399,13 +399,15 @@ def update_signal(signal: SignalIn):
 
 # ─── Health ───────────────────────────────────────────────────────────────────
 
+_API_VERSION = "3.5.2"
+
 @app.get("/health")
 def health():
-    return {"status": "healthy", "version": "3.5.0"}
+    return {"status": "healthy", "version": _API_VERSION}
 
 @app.get("/")
 def root():
-    return {"name": "CryptoTraderAI API", "version": "3.5.0"}
+    return {"name": "CryptoTraderAI API", "version": _API_VERSION}
 
 
 # ─── Market Data Proxy (MEXC public API — Binance-compatible, no geo-block) ──
