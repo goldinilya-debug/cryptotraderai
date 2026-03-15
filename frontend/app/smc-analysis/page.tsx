@@ -43,6 +43,21 @@ const TIMEFRAMES: Record<string, string> = {
 
 const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'BNBUSDT']
 
+// ICT Kill Zones (UTC hours)
+function getKillZone(): { name: string; active: boolean } {
+  const h = new Date().getUTCHours()
+  const m = new Date().getUTCMinutes()
+  const t = h + m / 60
+  if (t >= 0 && t < 5)   return { name: 'Asian Kill Zone',    active: true }
+  if (t >= 7 && t < 10)  return { name: 'London Kill Zone',   active: true }
+  if (t >= 12 && t < 15) return { name: 'NY AM Kill Zone',    active: true }
+  if (t >= 18.5 && t < 21) return { name: 'NY PM Kill Zone', active: true }
+  if (t >= 21) return { name: 'Pre-Asian Session', active: false }
+  if (t >= 5 && t < 7)   return { name: 'London Pre-Market', active: false }
+  if (t >= 10 && t < 12) return { name: 'London Close',       active: false }
+  return { name: 'Off-Session', active: false }
+}
+
 export default function SMCAnalysisPage() {
   const [signal, setSignal] = useState<Signal | undefined>(undefined)
   const [allApiSignals, setAllApiSignals] = useState<ApiSignal[]>([])
@@ -52,6 +67,7 @@ export default function SMCAnalysisPage() {
   const [selectedTF, setSelectedTF] = useState('15m')
   const [symbol, setSymbol] = useState('BTCUSDT')
   const [lastUpdate, setLastUpdate] = useState('')
+  const [killZone, setKillZone] = useState(getKillZone())
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const candleSeriesRef = useRef<any>(null)
   const chartInitialized = useRef(false)
@@ -161,8 +177,10 @@ export default function SMCAnalysisPage() {
   useEffect(() => { if (chartInitialized.current) loadChartData() }, [selectedTF, symbol])
   useEffect(() => { if (chartInitialized.current) fetchSignals() }, [symbol])
   useEffect(() => {
-    fetchCurrentPrice(); const interval = setInterval(() => { loadChartData(); fetchSignals(); fetchCurrentPrice() }, 15000)
-    return () => clearInterval(interval)
+    fetchCurrentPrice()
+    const interval = setInterval(() => { loadChartData(); fetchSignals(); fetchCurrentPrice() }, 15000)
+    const kzInterval = setInterval(() => setKillZone(getKillZone()), 60000)
+    return () => { clearInterval(interval); clearInterval(kzInterval) }
   }, [loadChartData, fetchSignals, fetchCurrentPrice])
 
   const handleRefresh = async () => { setLoading(true); await Promise.all([loadChartData(), fetchSignals(), fetchCurrentPrice()]); setLoading(false) }
@@ -176,7 +194,7 @@ export default function SMCAnalysisPage() {
           <div>
             <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 'bold' }}>📊 SMC Real-Time Analysis</h1>
             <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>
-              Smart Money Concepts · Live Binance Chart
+              Smart Money Concepts · Live MEXC Data
               {lastUpdate && <span style={{ marginLeft: '8px', color: '#22c55e', fontSize: '12px' }}>● {lastUpdate}</span>}
             </p>
           </div>
@@ -292,10 +310,10 @@ export default function SMCAnalysisPage() {
                 <span style={{ fontWeight: 'bold', fontSize: '14px' }}>SMC Filters</span>
               </div>
               {[
-                { label: 'Trend Filter', status: '✓ Aligned', active: true },
-                { label: 'FVG Pattern', status: signal?.active ? '✓ Detected' : '...', active: !!signal?.active },
-                { label: 'Kill Zone', status: signal?.active ? '✓ Active' : '...', active: !!signal?.active },
-                { label: 'Volume', status: '> 1.5x', active: true },
+                { label: 'Trend Filter', status: signal?.active ? '✓ Aligned' : 'EMA 200 check', active: !!signal?.active },
+                { label: 'FVG Pattern', status: signal?.active ? '✓ Detected' : 'Scanning…', active: !!signal?.active },
+                { label: 'Kill Zone', status: killZone.active ? `✓ ${killZone.name}` : killZone.name, active: killZone.active },
+                { label: 'Volume', status: signal?.active ? '✓ > 1.1×' : 'Min 1.1× avg', active: !!signal?.active },
               ].map((f, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <span style={{ color: '#6b7280', fontSize: '13px' }}>{f.label}</span>
