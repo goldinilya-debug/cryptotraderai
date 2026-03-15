@@ -414,14 +414,20 @@ def _bybit_interval(interval: str) -> str:
     m = {"1m":"1","3m":"3","5m":"5","15m":"15","30m":"30","1h":"60","2h":"120","4h":"240","6h":"360","12h":"720","1d":"D","1w":"W"}
     return m.get(interval.lower(), interval)
 
+_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; CryptoTraderAI/1.0)",
+    "Accept": "application/json",
+}
+
 @app.get("/proxy/ticker/{symbol}")
 def proxy_ticker(symbol: str):
     import httpx
-    # symbol comes as BTC-USDT, Bybit needs BTCUSDT
     bybit_symbol = symbol.replace("-", "")
     url = f"https://api.bybit.com/v5/market/tickers?category=spot&symbol={bybit_symbol}"
     try:
-        r = httpx.get(url, timeout=10)
+        r = httpx.get(url, headers=_HEADERS, timeout=15, follow_redirects=True)
+        if r.status_code != 200:
+            return {"code": -1, "msg": f"HTTP {r.status_code}: {r.text[:200]}"}
         j = r.json()
         t = j.get("result", {}).get("list", [{}])[0]
         return {"code": 0, "data": {
@@ -432,6 +438,17 @@ def proxy_ticker(symbol: str):
     except Exception as e:
         return {"code": -1, "msg": str(e)}
 
+@app.get("/proxy/debug")
+def proxy_debug():
+    """Debug: test raw Bybit connectivity from server"""
+    import httpx
+    url = "https://api.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT"
+    try:
+        r = httpx.get(url, headers=_HEADERS, timeout=15, follow_redirects=True)
+        return {"status": r.status_code, "body_len": len(r.text), "body_preview": r.text[:500]}
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get("/proxy/klines/{symbol}")
 def proxy_klines(symbol: str, interval: str = "4h", limit: int = 100):
     import httpx
@@ -439,10 +456,11 @@ def proxy_klines(symbol: str, interval: str = "4h", limit: int = 100):
     bybit_interval = _bybit_interval(interval)
     url = f"https://api.bybit.com/v5/market/kline?category=spot&symbol={bybit_symbol}&interval={bybit_interval}&limit={limit}"
     try:
-        r = httpx.get(url, timeout=10)
+        r = httpx.get(url, headers=_HEADERS, timeout=15, follow_redirects=True)
+        if r.status_code != 200:
+            return {"code": -1, "msg": f"HTTP {r.status_code}: {r.text[:200]}"}
         j = r.json()
         raw = j.get("result", {}).get("list", [])
-        # Bybit returns newest first — reverse to oldest first
         raw = list(reversed(raw))
         data = [{"time": int(k[0]), "open": k[1], "high": k[2], "low": k[3], "close": k[4], "volume": k[5]} for k in raw]
         return {"code": 0, "data": data}
