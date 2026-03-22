@@ -3,40 +3,17 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { 
-  LayoutDashboard,
-  Activity,
-  Search,
-  BarChart3,
+import {
   Clock,
   Target,
-  LineChart,
-  Brain,
   Layers,
-  MessageCircle,
-  User,
   Zap,
-  Settings,
-  Crosshair,
-  ZapIcon,
 } from 'lucide-react'
 
 const menuItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/smc-analysis', label: 'SMC Real-Time', icon: ZapIcon },
-  { href: '/signals', label: 'Signals', icon: Activity },
-  { href: '/screener', label: 'Screener', icon: Search },
-  { href: '/analysis', label: 'Analysis', icon: BarChart3 },
   { href: '/killzones', label: 'Kill Zones', icon: Clock },
   { href: '/fibzones', label: 'Fib Zones', icon: Target },
-  { href: '/backtest', label: 'Backtest', icon: LineChart },
-  { href: '/strategy', label: 'Strategy', icon: Settings },
-  { href: '/sniper', label: 'Sniper', icon: Crosshair },
   { href: '/footprint', label: 'Footprint', icon: Layers },
-  { href: '/ml', label: 'ML Model', icon: Brain },
-  { href: '/tradingview', label: 'TradingView', icon: Layers },
-  { href: '/telegram', label: 'Telegram', icon: MessageCircle },
-  { href: '/profile', label: 'Profile', icon: User },
 ]
 
 // Функция определения Kill Zone (время Израиля GMT+3)
@@ -208,7 +185,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
       <aside style={styles.sidebar}>
         {/* Logo */}
         <div style={styles.logo}>
-          <Link href="/dashboard" style={styles.logoLink}>
+          <Link href="/killzones" style={styles.logoLink}>
             <div style={styles.logoIcon}>
               <Zap size={20} color="#fff" />
             </div>
@@ -246,16 +223,6 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* User */}
-        <div style={styles.user}>
-          <Link href="/profile" style={styles.userLink}>
-            <div style={styles.userAvatar}>U</div>
-            <div>
-              <p style={styles.userName}>User</p>
-              <p style={styles.userStatus}>Connected</p>
-            </div>
-          </Link>
-        </div>
       </aside>
 
       {/* Main Content */}
