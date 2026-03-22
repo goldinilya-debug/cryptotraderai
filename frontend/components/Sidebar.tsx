@@ -9,6 +9,7 @@ import {
   Layers,
   Zap,
 } from 'lucide-react'
+import SentimentWidget from './SentimentWidget'
 
 const menuItems = [
   { href: '/killzones', label: 'Kill Zones', icon: Clock },
@@ -222,6 +223,8 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
             )
           })}
         </nav>
+
+        <SentimentWidget />
 
       </aside>
 
