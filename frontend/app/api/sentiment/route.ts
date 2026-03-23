@@ -9,11 +9,11 @@ export async function GET() {
   try {
     const [fgRes, frRes, lsRes] = await Promise.allSettled([
       // Fear & Greed — Alternative.me, полностью бесплатно
-      fetch('https://api.alternative.me/fng/?limit=1', { next: { revalidate: 3600 } }),
+      fetch('https://api.alternative.me/fng/?limit=1', { cache: 'no-store' }),
       // Funding Rate — Binance публичный эндпоинт
-      fetch('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT', { next: { revalidate: 60 } }),
+      fetch('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT', { cache: 'no-store' }),
       // Long/Short Ratio — Binance публичный эндпоинт
-      fetch('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=5m&limit=1', { next: { revalidate: 60 } }),
+      fetch('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=5m&limit=1', { cache: 'no-store' }),
     ])
 
     // Fear & Greed
