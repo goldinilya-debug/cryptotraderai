@@ -44,8 +44,38 @@ export default function SentimentWidget() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/sentiment')
-        if (res.ok) setData(await res.json())
+        const [fgRes, frRes, lsRes] = await Promise.allSettled([
+          fetch('https://api.alternative.me/fng/?limit=1'),
+          fetch('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT'),
+          fetch('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=5m&limit=1'),
+        ])
+
+        let fearGreed = null
+        if (fgRes.status === 'fulfilled' && fgRes.value.ok) {
+          const json = await fgRes.value.json()
+          const d = json.data?.[0]
+          if (d) fearGreed = { value: parseInt(d.value), classification: d.value_classification }
+        }
+
+        let fundingRate = null
+        if (frRes.status === 'fulfilled' && frRes.value.ok) {
+          const d = await frRes.value.json()
+          const rate = parseFloat(d.lastFundingRate)
+          fundingRate = { rate, pct: (rate * 100).toFixed(4) + '%', nextFundingTime: d.nextFundingTime }
+        }
+
+        let longShort = null
+        if (lsRes.status === 'fulfilled' && lsRes.value.ok) {
+          const json = await lsRes.value.json()
+          const d = json?.[0]
+          if (d) longShort = {
+            longPct: Math.round(parseFloat(d.longAccount) * 100 * 10) / 10,
+            shortPct: Math.round(parseFloat(d.shortAccount) * 100 * 10) / 10,
+            ratio: parseFloat(d.longShortRatio).toFixed(2),
+          }
+        }
+
+        setData({ fearGreed, fundingRate, longShort })
       } catch {}
       finally { setLoading(false) }
     }
