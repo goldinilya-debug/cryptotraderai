@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server'
 
-export const revalidate = 30 // кеш 30 секунд
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
